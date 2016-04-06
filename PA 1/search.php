@@ -17,11 +17,11 @@ Hello World
 	    while($row = $stmt->fetch()) {
 	        print_r($row);
 	    }
-
+		    */
 	}
 
 	} catch(PDOException $e) {
 	    echo 'ERROR: ' . $e->getMessage();
 	}
-		    */
+
  ?>
