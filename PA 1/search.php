@@ -36,7 +36,13 @@ try {
 
 	<!-- Display the results  -->
 	<div>
-		
+		<?php
+			$temp = new Player();
+			$allPlayers = $temp->getAllPlayers();
+			foreach ($allPlayers as $player) {
+				echo $player->name;
+			}
+		?>
 	</div>
 </body>
 </html>
