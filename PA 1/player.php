@@ -84,6 +84,7 @@ class Player {
 	}
 
 	function getAllPlayers() {
+		global $allPlayers;
 		return $allPlayers;
 	}
 
