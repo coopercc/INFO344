@@ -4,6 +4,7 @@
 	<title>Basketball Stats</title>
 	<link rel="stylesheet" href="http://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/css/bootstrap.min.css">
 	<link rel="stylesheet" type="text/css" href="css/main.css">
+	<link rel="icon" href="img/tab-icon.png">
 </head>
 <body>
 	<img src="img/nba.jpg">
