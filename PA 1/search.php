@@ -2,7 +2,7 @@
 require('player.php');
 $searchName = $_GET["name"];
 
-$allPlayers;	//sets the array of all players who match the search name
+$allPlayers = array();	//sets the array of all players who match the search name
 
 try {
 	$conn = new PDO('mysql:host=pa1.crm76mq5rzuz.us-west-2.rds.amazonaws.com;port=3306;dbname=PA1', 'info344user', 'Homerun240');
@@ -16,7 +16,8 @@ try {
     foreach ($data as $row) {
     	$newPlayer = new Player($row['Name'], $row['Team'], $row['GP'], $row['3PT-M'], $row['Rebounds-Off'], $row['Rebounds-Def'], $row['Rebounds-Tot'], $row['Ast'], $row['TO'], $row['Stl'], $row['Blk'], $row['PPG']);
 
-    	$allPlayers = $newPlayer->getAllPlayers();
+    	global $allPlayers;
+    	array_push($allPlayers, $newPlayer);
     }
 
 } catch(PDOException $e) {
@@ -47,6 +48,7 @@ try {
 
 <?php
 	//displays all players that match the search term
+	global $allPlayers;
 	foreach ($allPlayers as $player) {
 		echo "<div class='well'>";
 			echo "<h1>" . $player->getName() . "</h1>";

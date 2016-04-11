@@ -1,7 +1,5 @@
 <?php 
 
-$allPlayers = array();
-
 class Player {
 	private $name;
 	private $team;
@@ -30,9 +28,6 @@ class Player {
 		$this->stl = $stl;
 		$this->block = $block;
 		$this->ppg = $ppg;
-
-		global $allPlayers;
-		array_push($allPlayers, $this);
 	}
 
 	function getName() {
@@ -81,11 +76,6 @@ class Player {
 
 	function getPpg() {
 		return $this->ppg;
-	}
-
-	function getAllPlayers() {
-		global $allPlayers;
-		return $allPlayers;
 	}
 
 }
