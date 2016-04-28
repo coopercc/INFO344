@@ -1,0 +1,17 @@
+﻿body {
+    text-align: center;
+    font-family: sans-serif;
+}
+
+form {
+    margin-left: auto;
+    margin-right: auto;
+    width: 20%;
+}
+
+#display {
+    border: 1px black solid;
+    width: 25%;
+    margin-left: auto;
+    margin-right: auto;
+}
