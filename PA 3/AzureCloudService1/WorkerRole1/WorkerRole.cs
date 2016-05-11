@@ -23,6 +23,8 @@ namespace WorkerRole1
         private HashSet<string> disallow = new HashSet<string>();
         private CloudQueue admQueue;
         private CloudQueue urlQueue;
+        public string urlCnn = "http://www.cnn.com";
+        public string urlBR = "http://www.bleacherreport.com";
 
         public override void Run()
         {
@@ -49,40 +51,52 @@ namespace WorkerRole1
                         foreach (string url in robotArray)
                         {
 
-                            CloudQueueMessage urlMessage = new CloudQueueMessage(url);
-                            urlQueue.AddMessage(urlMessage);
+                            CloudQueueMessage addRobot = new CloudQueueMessage(url);
+                            urlQueue.AddMessage(addRobot);
                         }
 
-                        //for urlQueues
-                        
-
-                        //add robots.txt to url queue
+                    } else if (msgArray[0] == "stop")
+                    {
+                        running = false;
                     }
+
+                    admQueue.DeleteMessage(adminMessage);
                 }
 
-
-                /* 
-                 * IDK
-                 * check admin
-                 * pull queue message
-                 */
-
-
-                    //for running test if started
-                    if (retrievedMessage != null && running)
+                CloudQueueMessage urlMessage = urlQueue.GetMessage();
+                //for running test if started
+                if (urlMessage != null && running)
                 {
-                    string message = retrievedMessage.AsString;
+                    string message = urlMessage.AsString;
                     /* 3 different tests: if it is a txt, then process that
                      * if .xml then process sitemap
                      * if .html then grab url date and  
                      */
-                    string response = new WebClient().DownloadString(message);
+                    WebClient wClient = new WebClient();
+                    Stream data = wClient.OpenRead(message);
+                    StreamReader read = new StreamReader(data);
                     if (!disallow.Contains(message))
                     {
-
+                        //test if cnn or bleacherreport
                         if (message.Contains(".txt"))
                         {
+                            while (read.Peek() >= 0)
+                            {
+                                read.ReadLine()
+                            }
                             //run sitemap code
+                            String[] mapArray = message.Split(':');
+
+                            if (mapArray[0] == "Sitemap")
+                            {
+                                //add to url queue
+
+
+                            } else if (mapArray[0] == "Disallow")
+                            {
+                                //add to disallow hash
+                            }
+
                         }
                         else if (message.Contains(".html") || message.Contains(".htm"))
                         {
