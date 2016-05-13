@@ -11,7 +11,7 @@
     <RootNamespace>AzureCloudService1</RootNamespace>
     <AssemblyName>AzureCloudService1</AssemblyName>
     <StartDevelopmentStorage>True</StartDevelopmentStorage>
-    <Name>AzureCloudService1</Name>
+    <Name>CooperCainPA3</Name>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <DebugSymbols>true</DebugSymbols>

@@ -12,6 +12,8 @@ using Microsoft.WindowsAzure.Storage;
 using Microsoft.WindowsAzure.Storage.Queue;
 using System.Configuration;
 using System.IO;
+using ClassLibrary1;
+using System.Xml;
 
 namespace WorkerRole1
 {
@@ -19,22 +21,23 @@ namespace WorkerRole1
     {
         private readonly CancellationTokenSource cancellationTokenSource = new CancellationTokenSource();
         private readonly ManualResetEvent runCompleteEvent = new ManualResetEvent(false);
-        public CloudStorageAccount storageAccount = CloudStorageAccount.Parse(ConfigurationManager.AppSettings["StorageConnectionString"]);
+        private AzureConnection storageAccount = new AzureConnection(ConfigurationManager.AppSettings["StorageConnectionString"]);
         private HashSet<string> disallow = new HashSet<string>();
+        private string urlCnn = "http://www.cnn.com";
+        private string urlBR = "http://www.bleacherreport.com";
         private CloudQueue admQueue;
         private CloudQueue urlQueue;
-        public string urlCnn = "http://www.cnn.com";
-        public string urlBR = "http://www.bleacherreport.com";
+        private CloudQueue siteMapQueue;
 
+        /// <summary>
+        /// 
+        /// </summary>
         public override void Run()
         {
             Boolean running = false;
-            CloudQueueClient queueClient = storageAccount.CreateCloudQueueClient();
-            admQueue = queueClient.GetQueueReference("admin");
-            admQueue.CreateIfNotExists();
-
-            urlQueue = queueClient.GetQueueReference("urls");
-            urlQueue.CreateIfNotExists();
+            admQueue = storageAccount.getQueue("admin"); //Stores Admin Messages
+            urlQueue = storageAccount.getQueue("urls"); //Stores the URLS to be crawled
+            siteMapQueue = storageAccount.getQueue("sitemap"); //Stores the Sitemap data to be BFS'ed
 
             while (true)
             {
@@ -42,20 +45,39 @@ namespace WorkerRole1
 
                 if (adminMessage != null)
                 {
-                    string message = adminMessage.AsString;
-                    String[] msgArray = message.Split(':'); //array[0] is start/stop msg array[1] is urls if starting
+                    string admMessage = adminMessage.AsString;
+                    String[] msgArray = admMessage.Split(':'); //array[0] is start/stop msg array[1] is urls if starting
                     if (msgArray[0] == "start")
                     {
                         running = true;
                         String[] robotArray = msgArray[1].Split(',');
                         foreach (string url in robotArray)
                         {
+                            //Take care of the robots.txt here? - YES
+                            WebClient wClient = new WebClient();
+                            Stream data = wClient.OpenRead(admMessage);
+                            StreamReader read = new StreamReader(data);
 
-                            CloudQueueMessage addRobot = new CloudQueueMessage(url);
-                            urlQueue.AddMessage(addRobot);
+                            string line;
+                            while ((line = read.ReadLine()) != null)
+                            {
+                                if (url.Contains(urlCnn))
+                                {
+                                    buildSiteMap(line, urlCnn);
+                                }
+                                else //for bleacherreport
+                                {
+                                    if (line.Contains("nba"))
+                                    {
+                                        buildSiteMap(line, urlBR);
+                                    }
+
+                                }
+                            }
                         }
 
-                    } else if (msgArray[0] == "stop")
+                    }
+                    else if (msgArray[0] == "stop")
                     {
                         running = false;
                     }
@@ -63,50 +85,93 @@ namespace WorkerRole1
                     admQueue.DeleteMessage(adminMessage);
                 }
 
-                CloudQueueMessage urlMessage = urlQueue.GetMessage();
-                //for running test if started
-                if (urlMessage != null && running)
+
+                /*
+                 * This is for making the sitemap work
+                 * Since the sitemap is started, just handle XML
+                 */
+                CloudQueueMessage siteMapMessage = siteMapQueue.GetMessage();
+                string message = siteMapMessage.AsString;
+
+                if (siteMapMessage != null && running)
                 {
-                    string message = urlMessage.AsString;
-                    /* 3 different tests: if it is a txt, then process that
-                     * if .xml then process sitemap
-                     * if .html then grab url date and  
-                     */
-                    WebClient wClient = new WebClient();
-                    Stream data = wClient.OpenRead(message);
-                    StreamReader read = new StreamReader(data);
+
+
+                    XmlDocument xDoc = new XmlDocument();
+                    xDoc.Load(message);
+
                     if (!disallow.Contains(message))
                     {
                         //test if cnn or bleacherreport
-                        if (message.Contains(".txt"))
+                        foreach (XmlNode node in xDoc.DocumentElement.ChildNodes)
                         {
-                            while (read.Peek() >= 0)
+                            string publish = "";
+                            string loc = "";
+                            // first node is the url ... have to go to nexted loc node 
+                            foreach (XmlNode locNode in node)
                             {
-                                read.ReadLine()
+                                //IF lastMod more recent than March 1 2016
+                                // thereare a couple child nodes here so only take data from node named loc 
+                                if (locNode.Name == "loc")
+                                {
+                                    // get the content of the loc node 
+                                    loc = locNode.InnerText;
+
+                                } else if (locNode.Name == "lastmod")
+                                {
+                                    publish = locNode.InnerText;
+                                }
                             }
-                            //run sitemap code
-                            String[] mapArray = message.Split(':');
 
-                            if (mapArray[0] == "Sitemap")
+                            /*
+                             * if:
+                             * Url is CNN, year is at least 2016, and Month is at least March
+                             * OR 
+                             * ORL is BleacherReport and the XML has nba in it 
+                             */
+                            DateTime dt = Convert.ToDateTime(publish);
+                            CloudQueueMessage msg = new CloudQueueMessage(loc);
+                            if ((message.Contains(urlCnn) && dt.Year >= 2016 && dt.Month >= 3))
                             {
-                                //add to url queue
-
-
-                            } else if (mapArray[0] == "Disallow")
+                                
+                                if (loc.EndsWith(".xml"))
+                                {
+                                    siteMapQueue.AddMessage(msg);
+                                } else if (loc.Contains(".htm"))
+                                {
+                                    urlQueue.AddMessage(msg);
+                                }
+                            } else if (message.Contains(urlBR))
                             {
-                                //add to disallow hash
+                                urlQueue.AddMessage(msg);
                             }
-
-                        }
-                        else if (message.Contains(".html") || message.Contains(".htm"))
-                        {
-                            //search html page
                         }
                     }
                 }
 
                 Thread.Sleep(100);
             }
+        }
+
+
+        //if BleacherReport, only add the nba related ones
+        private void buildSiteMap(string line, string url)
+        {
+            string[] siteMap = line.Split(':');
+            if (siteMap[0] == "SiteMap")
+            {
+                
+                CloudQueueMessage message = new CloudQueueMessage(siteMap[1].Trim());
+                siteMapQueue.AddMessage(message);
+            } else if (siteMap[1] == "Disallow")
+            {
+                disallow.Add(url + siteMap[1].Trim());
+            }
+        }
+
+        private void CrawlSiteMap(XmlDocument xDoc)
+        {
+
         }
 
         public override bool OnStart()
