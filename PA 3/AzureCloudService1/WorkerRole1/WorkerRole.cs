@@ -55,7 +55,6 @@ namespace WorkerRole1
                         String[] robotArray = msgArray[1].Split(',');
                         foreach (string url in robotArray)
                         {
-                            //Take care of the robots.txt here? - YES
                             WebClient wClient = new WebClient();
                             Stream data = wClient.OpenRead(url);
                             StreamReader read = new StreamReader(data);
@@ -73,18 +72,14 @@ namespace WorkerRole1
                                     {
                                         buildSiteMap(line, urlBR);
                                     }
-
                                 }
                             }
                         }
-
                     }
                     else if (msgArray[0] == "stop")
                     {
                         running = false;
                     }
-
-
                 }
 
 
@@ -95,7 +90,6 @@ namespace WorkerRole1
                 CloudQueueMessage siteMapMessage = siteMapQueue.GetMessage();
                 if (siteMapMessage != null && running)
                 {
-
                     string message = siteMapMessage.AsString;
                     siteMapQueue.DeleteMessage(siteMapMessage);
                     XmlDocument xDoc = new XmlDocument();
@@ -104,16 +98,13 @@ namespace WorkerRole1
                     //test if cnn or bleacherreport
                     foreach (XmlNode node in xDoc.DocumentElement.ChildNodes)
                     {
-                        string publish = "";
+                        string publish = ""; //When  the last published date was. If none, then it is recent enough
                         string loc = "";
-                        // first node is the url ... have to go to nexted loc node 
                         foreach (XmlNode locNode in node)
                         {
-                            //IF lastMod more recent than March 1 2016
-                            // thereare a couple child nodes here so only take data from node named loc 
+
                             if (locNode.Name == "loc")
                             {
-                                // get the content of the loc node 
                                 loc = locNode.InnerText;
 
                             } else if (locNode.Name == "lastmod")
@@ -122,12 +113,6 @@ namespace WorkerRole1
                             }
                         }
 
-                        /*
-                            * if:
-                            * Url is CNN, year is at least 2016, and Month is at least March
-                            * OR 
-                            * ORL is BleacherReport and the XML has nba in it 
-                            */
                         if (publish == "")
                         {
                             publish = "2016-05-13";
@@ -163,6 +148,9 @@ namespace WorkerRole1
                     }
                 }
 
+                /*
+                 * Here we will be doing the URL crawling
+                 */
                 Thread.Sleep(100);
             }
         }
