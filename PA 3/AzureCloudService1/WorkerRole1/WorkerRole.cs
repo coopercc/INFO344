@@ -22,7 +22,8 @@ namespace WorkerRole1
         private readonly CancellationTokenSource cancellationTokenSource = new CancellationTokenSource();
         private readonly ManualResetEvent runCompleteEvent = new ManualResetEvent(false);
         private AzureConnection storageAccount = new AzureConnection(ConfigurationManager.AppSettings["StorageConnectionString"]);
-        private HashSet<string> disallow = new HashSet<string>();
+        private List<string> disallow = new List<string>();
+        private HashSet<string> AlreadyAdded = new HashSet<string>();
         private string urlCnn = "http://www.cnn.com";
         private string urlBR = "http://www.bleacherreport.com";
         private CloudQueue admQueue;
@@ -46,7 +47,8 @@ namespace WorkerRole1
                 if (adminMessage != null)
                 {
                     string admMessage = adminMessage.AsString;
-                    String[] msgArray = admMessage.Split(':'); //array[0] is start/stop msg array[1] is urls if starting
+                    admQueue.DeleteMessage(adminMessage);
+                    String[] msgArray = admMessage.Split(new char[] { ':' }, 2); //array[0] is start/stop msg array[1] is urls if starting
                     if (msgArray[0] == "start")
                     {
                         running = true;
@@ -55,7 +57,7 @@ namespace WorkerRole1
                         {
                             //Take care of the robots.txt here? - YES
                             WebClient wClient = new WebClient();
-                            Stream data = wClient.OpenRead(admMessage);
+                            Stream data = wClient.OpenRead(url);
                             StreamReader read = new StreamReader(data);
 
                             string line;
@@ -82,7 +84,7 @@ namespace WorkerRole1
                         running = false;
                     }
 
-                    admQueue.DeleteMessage(adminMessage);
+
                 }
 
 
@@ -91,61 +93,73 @@ namespace WorkerRole1
                  * Since the sitemap is started, just handle XML
                  */
                 CloudQueueMessage siteMapMessage = siteMapQueue.GetMessage();
-                string message = siteMapMessage.AsString;
-
                 if (siteMapMessage != null && running)
                 {
 
-
+                    string message = siteMapMessage.AsString;
+                    siteMapQueue.DeleteMessage(siteMapMessage);
                     XmlDocument xDoc = new XmlDocument();
                     xDoc.Load(message);
 
-                    if (!disallow.Contains(message))
+                    //test if cnn or bleacherreport
+                    foreach (XmlNode node in xDoc.DocumentElement.ChildNodes)
                     {
-                        //test if cnn or bleacherreport
-                        foreach (XmlNode node in xDoc.DocumentElement.ChildNodes)
+                        string publish = "";
+                        string loc = "";
+                        // first node is the url ... have to go to nexted loc node 
+                        foreach (XmlNode locNode in node)
                         {
-                            string publish = "";
-                            string loc = "";
-                            // first node is the url ... have to go to nexted loc node 
-                            foreach (XmlNode locNode in node)
+                            //IF lastMod more recent than March 1 2016
+                            // thereare a couple child nodes here so only take data from node named loc 
+                            if (locNode.Name == "loc")
                             {
-                                //IF lastMod more recent than March 1 2016
-                                // thereare a couple child nodes here so only take data from node named loc 
-                                if (locNode.Name == "loc")
-                                {
-                                    // get the content of the loc node 
-                                    loc = locNode.InnerText;
+                                // get the content of the loc node 
+                                loc = locNode.InnerText;
 
-                                } else if (locNode.Name == "lastmod")
-                                {
-                                    publish = locNode.InnerText;
-                                }
-                            }
-
-                            /*
-                             * if:
-                             * Url is CNN, year is at least 2016, and Month is at least March
-                             * OR 
-                             * ORL is BleacherReport and the XML has nba in it 
-                             */
-                            DateTime dt = Convert.ToDateTime(publish);
-                            CloudQueueMessage msg = new CloudQueueMessage(loc);
-                            if ((message.Contains(urlCnn) && dt.Year >= 2016 && dt.Month >= 3))
+                            } else if (locNode.Name == "lastmod")
                             {
-                                
-                                if (loc.EndsWith(".xml"))
-                                {
-                                    siteMapQueue.AddMessage(msg);
-                                } else if (loc.Contains(".htm"))
-                                {
-                                    urlQueue.AddMessage(msg);
-                                }
-                            } else if (message.Contains(urlBR))
-                            {
-                                urlQueue.AddMessage(msg);
+                                publish = locNode.InnerText;
                             }
                         }
+
+                        /*
+                            * if:
+                            * Url is CNN, year is at least 2016, and Month is at least March
+                            * OR 
+                            * ORL is BleacherReport and the XML has nba in it 
+                            */
+                        if (publish == "")
+                        {
+                            publish = "2016-05-13";
+                        }
+                        DateTime dt = Convert.ToDateTime(publish);
+                        CloudQueueMessage msg = new CloudQueueMessage(loc);
+                        Boolean allowed = true;
+                        foreach(string str in disallow)
+                        {
+                            if (loc.Contains(str)) {
+                                allowed = false;
+                            }
+                        }
+                        
+
+                        if (loc.Contains(urlCnn) && dt.Year >= 2016 && dt.Month >= 3 && allowed && !AlreadyAdded.Contains(loc))
+                        {
+                                
+                            if (loc.EndsWith(".xml"))
+                            {
+                                siteMapQueue.AddMessage(msg);
+                            } else if (loc.Contains(".htm"))
+                            {
+                                urlQueue.AddMessage(msg);
+                                AlreadyAdded.Add(loc);
+                            }
+                        } else if (message.Contains(urlBR))
+                        {
+                            urlQueue.AddMessage(msg);
+                            AlreadyAdded.Add(loc);
+                        }
+                        
                     }
                 }
 
@@ -157,21 +171,16 @@ namespace WorkerRole1
         //if BleacherReport, only add the nba related ones
         private void buildSiteMap(string line, string url)
         {
-            string[] siteMap = line.Split(':');
-            if (siteMap[0] == "SiteMap")
+            string[] siteMap = line.Split(new char[] { ':' }, 2);
+            if (siteMap[0] == "Sitemap")
             {
                 
                 CloudQueueMessage message = new CloudQueueMessage(siteMap[1].Trim());
                 siteMapQueue.AddMessage(message);
-            } else if (siteMap[1] == "Disallow")
+            } else if (siteMap[0] == "Disallow")
             {
                 disallow.Add(url + siteMap[1].Trim());
             }
-        }
-
-        private void CrawlSiteMap(XmlDocument xDoc)
-        {
-
         }
 
         public override bool OnStart()

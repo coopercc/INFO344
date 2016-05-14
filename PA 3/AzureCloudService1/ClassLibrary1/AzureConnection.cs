@@ -19,6 +19,7 @@ namespace ClassLibrary1
         {
             storageAccount = CloudStorageAccount.Parse(connect);
             queueClient = storageAccount.CreateCloudQueueClient();
+            tableClient = storageAccount.CreateCloudTableClient();
         }
 
         public CloudQueue getQueue(string name)

@@ -1,5 +1,5 @@
 ﻿$(function () {
-    $("#start").onClick(function () {
+    $("#start").click(function () {
         $.ajax({
             url: "Admin.asmx/Start",
             data: "{}",
