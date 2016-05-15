@@ -31,7 +31,7 @@ namespace WorkerRole1
 
         private CloudQueue admQueue;
         private CloudQueue urlQueue;
-        private CloudQueue siteMapQueue;
+        private Queue<string> xmls;
 
         private CloudTable crawled;
         private CloudTable count;
@@ -44,14 +44,13 @@ namespace WorkerRole1
             Boolean running = false;
             admQueue = storageAccount.getQueue("admin"); //Stores Admin Messages
             urlQueue = storageAccount.getQueue("urls"); //Stores the URLS to be crawled
-            siteMapQueue = storageAccount.getQueue("sitemap"); //Stores the Sitemap data to be BFS'ed
+
+            xmls = new Queue<string>();
+
             crawled = storageAccount.getTable("crawled");
 
             count = storageAccount.getTable("count");
-            TableOperation initCount = TableOperation.Insert(new Count(0));
-            count.Execute(initCount);
 
-            Boolean SiteMapRunning = false;
 
             while (true)
             {
@@ -103,12 +102,9 @@ namespace WorkerRole1
                  */
                 if (running)
                 {
-                    CloudQueueMessage siteMapMessage = siteMapQueue.GetMessage();
-                    if (siteMapMessage != null)
+                    while (xmls.Count != 0)
                     {
-                        SiteMapRunning = true;
-                        string message = siteMapMessage.AsString;
-                        siteMapQueue.DeleteMessage(siteMapMessage);
+                        string message = xmls.Dequeue();
                         XmlDocument xDoc = new XmlDocument();
                         xDoc.Load(message);
 
@@ -152,7 +148,7 @@ namespace WorkerRole1
 
                                 if (loc.EndsWith(".xml"))
                                 {
-                                    siteMapQueue.AddMessage(msg);
+                                    xmls.Enqueue(loc);
                                 }
                                 else if (loc.Contains(".htm"))
                                 {
@@ -168,16 +164,13 @@ namespace WorkerRole1
 
                         }
 
-                    } else
-                    {
-                        SiteMapRunning = false;
                     }
 
                     /*
                      * Here we will be doing the URL crawling
                      */
                     CloudQueueMessage htmlMessage = urlQueue.GetMessage();
-                    if (htmlMessage != null && !SiteMapRunning)
+                    if (htmlMessage != null)
                     {
                         string url = htmlMessage.AsString;
                         HtmlDocument htmlDoc = new HtmlWeb().Load(url);
@@ -207,53 +200,55 @@ namespace WorkerRole1
                                             urlQueue.AddMessage(msg);
                                         }
                                     }
-
-                                    foreach (HtmlNode metas in htmlDoc.DocumentNode.SelectNodes("//meta"))
-                                    {
-                                        HtmlAttribute att = metas.Attributes["name"];
-                                        if (att != null)
-                                        {
-                                            string name = att.ToString();
-                                            if (name == "lastmod")
-                                            {
-                                                date = metas.Attributes["content"].ToString();
-                                            }
-                                        }
-                                        HtmlAttribute att2 = metas.Attributes["property"];
-                                        if (att2 != null)
-                                        {
-                                            string postTitle = att2.ToString();
-                                            if (postTitle == "og:title")
-                                            {
-
-                                                title = metas.Attributes["content"].ToString();
-                                            }
-                                        }
-                                    }
                                 }
-                                //here add to urlTable + increment count by 1
-                                TableOperation insertOperation = TableOperation.Insert(new HtmlClass(url, title, date));
-                                crawled.Execute(insertOperation); //add to table
-                                AlreadyAdded.Add(url); //add to urls already crawled
-
-                                //count++
-                                TableOperation retrieveOperation = TableOperation.Retrieve<Count>("Count", "Count");
-                                TableResult retrievedResult = count.Execute(retrieveOperation);
-                                Count updateEntity = (Count)retrievedResult.Result;
-                                updateEntity.count = updateEntity.count + 1;
-                                TableOperation replaceOperation = TableOperation.InsertOrReplace(updateEntity);
-                                count.Execute(replaceOperation);
                             }
-
-                            /*What to do with current page:
-                             *  put into crawled URL table: title, URL, Date of lastmod
-                             *  
-                             *  Increment count table by 1
-                             */
                         }
 
+                        HtmlNode node = htmlDoc.DocumentNode.SelectSingleNode("//meta[@name='pubdate']");
+                        if (node != null)
+                        {
+                            HtmlAttribute desc;
+
+                            desc = node.Attributes["content"];
+                            date = desc.Value;
+                        }
+                        var titleElement =
+                                   htmlDoc.DocumentNode
+                                      .Element("html")
+                                      .Element("head")
+                                      .Element("title");
+                        if (titleElement != null)
+                        {
+                            title = titleElement.InnerText;
+                        }
+
+
+                        //here add to urlTable + increment count by 1
+                        HtmlClass newPage = new HtmlClass(url, title, date);
+                        TableOperation insertOperation = TableOperation.Insert(newPage);
+                        crawled.Execute(insertOperation); //add to table
+                        AlreadyAdded.Add(url); //add to urls already crawled
+
+                        //count++
+                        TableOperation retrieveOperation = TableOperation.Retrieve<Count>("Count", "Count");
+                        TableResult retrievedResult = count.Execute(retrieveOperation);
+                        Count updateEntity;
+                        if (retrievedResult != null)
+                        {
+                            updateEntity = (Count)retrievedResult.Result;
+                            updateEntity.count = updateEntity.count + 1;
+                                    
+                        } else
+                        {
+                            updateEntity = new Count(1);
+                        }
+                               
+                        TableOperation replaceOperation = TableOperation.InsertOrReplace(updateEntity);
+                        count.Execute(replaceOperation);
                     }
+
                 }
+
             }
         }
 
@@ -264,9 +259,7 @@ namespace WorkerRole1
             string[] siteMap = line.Split(new char[] { ':' }, 2);
             if (siteMap[0] == "Sitemap")
             {
-                
-                CloudQueueMessage message = new CloudQueueMessage(siteMap[1].Trim());
-                siteMapQueue.AddMessage(message);
+                xmls.Enqueue(siteMap[1].Trim());
             } else if (siteMap[0] == "Disallow")
             {
                 disallow.Add(url + siteMap[1].Trim());

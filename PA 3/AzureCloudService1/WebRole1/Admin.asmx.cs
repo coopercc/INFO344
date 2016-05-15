@@ -7,6 +7,7 @@ using System.Linq;
 using System.Web;
 using System.Web.Script.Services;
 using System.Web.Services;
+using ClassLibrary1;
 
 namespace WebRole1
 {
@@ -20,15 +21,14 @@ namespace WebRole1
     [System.Web.Script.Services.ScriptService]
     public class Admin : System.Web.Services.WebService
     {
-        public Microsoft.WindowsAzure.Storage.CloudStorageAccount storageAccount = CloudStorageAccount.Parse(ConfigurationManager.AppSettings["StorageConnectionString"]);
+        private AzureConnection storageAccount = new AzureConnection(ConfigurationManager.AppSettings["StorageConnectionString"]);
         private CloudQueue admin;
 
         [WebMethod]
         public void Start()
         {
-            CloudQueueClient queueClient = storageAccount.CreateCloudQueueClient();
-            admin = queueClient.GetQueueReference("admin");
-            admin.CreateIfNotExists();
+
+            admin = storageAccount.getQueue("admin");
             CloudQueueMessage message = new CloudQueueMessage("start:http://www.cnn.com/robots.txt,http://bleacherreport.com/robots.txt");
             admin.AddMessage(message);
         }
