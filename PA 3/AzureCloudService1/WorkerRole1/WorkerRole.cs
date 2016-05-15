@@ -16,6 +16,7 @@ using ClassLibrary1;
 using System.Xml;
 using HtmlAgilityPack;
 using Microsoft.WindowsAzure.Storage.Table;
+using System.Text;
 
 namespace WorkerRole1
 {
@@ -24,8 +25,11 @@ namespace WorkerRole1
         private readonly CancellationTokenSource cancellationTokenSource = new CancellationTokenSource();
         private readonly ManualResetEvent runCompleteEvent = new ManualResetEvent(false);
         private AzureConnection storageAccount = new AzureConnection(ConfigurationManager.AppSettings["StorageConnectionString"]);
+
         private List<string> disallow = new List<string>();
         private HashSet<string> AlreadyAdded = new HashSet<string>();
+        private HashSet<string> AlreadyCrawled = new HashSet<string>();
+
         private string urlCnn = "http://www.cnn.com";
         private string urlBR = "http://www.bleacherreport.com";
 
@@ -54,7 +58,7 @@ namespace WorkerRole1
 
             while (true)
             {
-                Thread.Sleep(100);
+                Thread.Sleep(10);
                 CloudQueueMessage adminMessage = admQueue.GetMessage();
 
                 if (adminMessage != null)
@@ -173,78 +177,81 @@ namespace WorkerRole1
                     if (htmlMessage != null)
                     {
                         string url = htmlMessage.AsString;
-                        HtmlDocument htmlDoc = new HtmlWeb().Load(url);
-
-                        string title = "";
-                        string date = "05/14/2016";
-                        if (htmlDoc.ParseErrors != null && htmlDoc.ParseErrors.Count() > 0)
+                        urlQueue.DeleteMessage(htmlMessage);
+                        
+                        if (!AlreadyCrawled.Contains(url))
                         {
-                            // Handle any parse errors as required
-                            //something about logging errors
-                        }
-                        else
-                        {
-                            if (htmlDoc.DocumentNode != null)
+                            HtmlDocument htmlDoc = new HtmlWeb().Load(url);
+                            string title = "";
+                            string date = "05/14/2016";
+                            if (htmlDoc.ParseErrors != null && htmlDoc.ParseErrors.Count() > 0)
                             {
-                                HtmlNode bodyNode = htmlDoc.DocumentNode.SelectSingleNode("//body");
-
-                                if (bodyNode != null)
+                                // Handle any parse errors as required
+                                //something about logging errors
+                            }
+                            else
+                            {
+                                if (htmlDoc.DocumentNode != null)
                                 {
-                                    foreach (HtmlNode link in htmlDoc.DocumentNode.SelectNodes("//a[@href]"))
+                                    HtmlNode bodyNode = htmlDoc.DocumentNode.SelectSingleNode("//body");
+
+                                    if (bodyNode != null)
                                     {
-                                        HtmlAttribute att = link.Attributes["href"];
-                                        string newLink = att.ToString();
-                                        if (newLink.Contains(urlCnn) || newLink.Contains(urlBR))
+                                        foreach (HtmlNode link in htmlDoc.DocumentNode.SelectNodes("//a[@href]"))
                                         {
-                                            CloudQueueMessage msg = new CloudQueueMessage(newLink);
-                                            urlQueue.AddMessage(msg);
+                                            HtmlAttribute att = link.Attributes["href"];
+                                            string newLink = att.Value.ToString();
+                                            if (newLink.Contains(urlCnn) || newLink.Contains(urlBR))
+                                            {
+                                                CloudQueueMessage msg = new CloudQueueMessage(newLink);
+                                                urlQueue.AddMessage(msg);
+                                            }
                                         }
                                     }
                                 }
                             }
+
+                            HtmlNode node = htmlDoc.DocumentNode.SelectSingleNode("//meta[@name='pubdate']");
+                            if (node != null)
+                            {
+                                HtmlAttribute desc;
+
+                                desc = node.Attributes["content"];
+                                date = desc.Value;
+                            }
+                            var titleElement =
+                                       htmlDoc.DocumentNode
+                                          .Element("html")
+                                          .Element("head")
+                                          .Element("title");
+                            if (titleElement != null && titleElement.InnerText != "Error")
+                            {
+                                title = titleElement.InnerText;
+                            }
+                            //here add to urlTable + increment count by 1
+                            HtmlClass newPage = new HtmlClass(url, title, date);
+                            TableOperation insertOperation = TableOperation.Insert(newPage);
+                            crawled.Execute(insertOperation); //add to table
+                            AlreadyCrawled.Add(url); //add to urls already crawled
+
+                            //count++
+                            TableOperation retrieveOperation = TableOperation.Retrieve<Count>("Count", "Count");
+                            TableResult retrievedResult = count.Execute(retrieveOperation);
+                            Count updateEntity;
+                            if (retrievedResult.Result != null)
+                            {
+                                int ct = ((Count)retrievedResult.Result).count;
+                                updateEntity = new Count(ct + 1);
+
+                            }
+                            else
+                            {
+                                updateEntity = new Count(1);
+                            }
+
+                            TableOperation replaceOperation = TableOperation.InsertOrReplace(updateEntity);
+                            count.Execute(replaceOperation);
                         }
-
-                        HtmlNode node = htmlDoc.DocumentNode.SelectSingleNode("//meta[@name='pubdate']");
-                        if (node != null)
-                        {
-                            HtmlAttribute desc;
-
-                            desc = node.Attributes["content"];
-                            date = desc.Value;
-                        }
-                        var titleElement =
-                                   htmlDoc.DocumentNode
-                                      .Element("html")
-                                      .Element("head")
-                                      .Element("title");
-                        if (titleElement != null)
-                        {
-                            title = titleElement.InnerText;
-                        }
-
-
-                        //here add to urlTable + increment count by 1
-                        HtmlClass newPage = new HtmlClass(url, title, date);
-                        TableOperation insertOperation = TableOperation.Insert(newPage);
-                        crawled.Execute(insertOperation); //add to table
-                        AlreadyAdded.Add(url); //add to urls already crawled
-
-                        //count++
-                        TableOperation retrieveOperation = TableOperation.Retrieve<Count>("Count", "Count");
-                        TableResult retrievedResult = count.Execute(retrieveOperation);
-                        Count updateEntity;
-                        if (retrievedResult != null)
-                        {
-                            updateEntity = (Count)retrievedResult.Result;
-                            updateEntity.count = updateEntity.count + 1;
-                                    
-                        } else
-                        {
-                            updateEntity = new Count(1);
-                        }
-                               
-                        TableOperation replaceOperation = TableOperation.InsertOrReplace(updateEntity);
-                        count.Execute(replaceOperation);
                     }
 
                 }
