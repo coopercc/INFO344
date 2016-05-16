@@ -25,19 +25,30 @@ namespace WebRole1
         private CloudQueue admin;
 
         [WebMethod]
-        public void Start()
+        public string Start()
         {
 
             admin = storageAccount.getQueue("admin");
             CloudQueueMessage message = new CloudQueueMessage("start:http://www.cnn.com/robots.txt,http://bleacherreport.com/robots.txt");
             admin.AddMessage(message);
+            return "Success";
         }
 
         [WebMethod]
-        public void EndCrawler()
+        public string Stop()
         {
             //Clear everything (index/table, queue/pipeline, stop all worker roles)
+            CloudQueueMessage message = new CloudQueueMessage("stop");
+            admin.AddMessage(message);
+            return "Success";
+        }
 
+        [WebMethod]
+        public string Continue()
+        {
+            CloudQueueMessage message = new CloudQueueMessage("continue");
+            admin.AddMessage(message);
+            return "Success";
         }
     }
 }

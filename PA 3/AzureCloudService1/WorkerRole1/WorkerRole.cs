@@ -96,6 +96,9 @@ namespace WorkerRole1
                     else if (msgArray[0] == "stop")
                     {
                         running = false;
+                    } else if (msgArray[0] == "continue")
+                    {
+                        running = true;
                     }
                 }
 
@@ -106,7 +109,7 @@ namespace WorkerRole1
                  */
                 if (running)
                 {
-                    while (xmls.Count != 0)
+                    if (xmls.Count != 0)
                     {
                         string message = xmls.Dequeue();
                         XmlDocument xDoc = new XmlDocument();
