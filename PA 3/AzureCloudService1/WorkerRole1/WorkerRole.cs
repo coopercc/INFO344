@@ -30,37 +30,39 @@ namespace WorkerRole1
         private HashSet<string> AlreadyAdded = new HashSet<string>();
         private HashSet<string> AlreadyCrawled = new HashSet<string>();
 
-        private string urlCnn = "http://www.cnn.com";
-        private string urlBR = "http://www.bleacherreport.com";
+        private List<string> lastTen = new List<string>();
+        private string CrawlState;
+        private PerformanceCounter MemCounter = new PerformanceCounter("Memory", "Available MBytes");
+        private PerformanceCounter CpuCounter = new PerformanceCounter("Process", "% Processor Time", Process.GetCurrentProcess().ProcessName);
+
+        private string urlCnn = "cnn.com";
+        private string urlBR = "bleacherreport.com";
 
         private CloudQueue admQueue;
         private CloudQueue urlQueue;
         private Queue<string> xmls;
 
         private CloudTable crawled;
-        private CloudTable count;
+        private CloudTable stats;
 
         /// <summary>
         /// 
         /// </summary>
         public override void Run()
         {
-            Boolean running = false;
+            bool running = false;
             admQueue = storageAccount.getQueue("admin"); //Stores Admin Messages
             urlQueue = storageAccount.getQueue("urls"); //Stores the URLS to be crawled
-
             xmls = new Queue<string>();
-
             crawled = storageAccount.getTable("crawled");
-
-            count = storageAccount.getTable("count");
+            stats = storageAccount.getTable("stats");
+            CrawlState = "Idle";
 
 
             while (true)
             {
-                Thread.Sleep(10);
+                Thread.Sleep(50);
                 CloudQueueMessage adminMessage = admQueue.GetMessage();
-
                 if (adminMessage != null)
                 {
                     string admMessage = adminMessage.AsString;
@@ -68,6 +70,7 @@ namespace WorkerRole1
                     String[] msgArray = admMessage.Split(new char[] { ':' }, 2); //array[0] is start/stop msg array[1] is urls if starting
                     if (msgArray[0] == "start")
                     {
+                        CrawlState = "Loading";
                         running = true;
                         String[] robotArray = msgArray[1].Split(',');
                         foreach (string url in robotArray)
@@ -149,6 +152,21 @@ namespace WorkerRole1
                                 }
                             }
 
+                            if (loc.EndsWith("/"))
+                            {
+                                loc = loc + "index.html";
+                            }
+
+                            if (loc.StartsWith("/"))
+                            {
+                                if (message.Contains(urlCnn))
+                                {
+                                    loc = "www." + urlCnn + loc;
+                                }
+                                else if (message.Contains(urlBR)){
+                                    loc = "www." + urlBR + loc;
+                                }
+                            }
 
                             if (loc.Contains(urlCnn) && dt.Year >= 2016 && dt.Month >= 3 && allowed && !AlreadyAdded.Contains(loc))
                             {
@@ -171,13 +189,16 @@ namespace WorkerRole1
 
                         }
 
+                    } else
+                    {
+                        CrawlState = "Crawling";
                     }
 
                     /*
                      * Here we will be doing the URL crawling
                      */
                     CloudQueueMessage htmlMessage = urlQueue.GetMessage();
-                    if (htmlMessage != null)
+                    if (htmlMessage != null && CrawlState.Equals("Crawling"))
                     {
                         string url = htmlMessage.AsString;
                         urlQueue.DeleteMessage(htmlMessage);
@@ -187,12 +208,7 @@ namespace WorkerRole1
                             HtmlDocument htmlDoc = new HtmlWeb().Load(url);
                             string title = "";
                             string date = "05/14/2016";
-                            if (htmlDoc.ParseErrors != null && htmlDoc.ParseErrors.Count() > 0)
-                            {
-                                // Handle any parse errors as required
-                                //something about logging errors
-                            }
-                            else
+                            try
                             {
                                 if (htmlDoc.DocumentNode != null)
                                 {
@@ -212,52 +228,116 @@ namespace WorkerRole1
                                         }
                                     }
                                 }
-                            }
 
-                            HtmlNode node = htmlDoc.DocumentNode.SelectSingleNode("//meta[@name='pubdate']");
-                            if (node != null)
-                            {
-                                HtmlAttribute desc;
 
-                                desc = node.Attributes["content"];
-                                date = desc.Value;
-                            }
-                            var titleElement =
-                                       htmlDoc.DocumentNode
-                                          .Element("html")
-                                          .Element("head")
-                                          .Element("title");
-                            if (titleElement != null && titleElement.InnerText != "Error")
-                            {
-                                title = titleElement.InnerText;
-                            }
-                            //here add to urlTable + increment count by 1
-                            HtmlClass newPage = new HtmlClass(url, title, date);
-                            TableOperation insertOperation = TableOperation.Insert(newPage);
-                            crawled.Execute(insertOperation); //add to table
-                            AlreadyCrawled.Add(url); //add to urls already crawled
+                                HtmlNode node = htmlDoc.DocumentNode.SelectSingleNode("//meta[@name='pubdate']");
+                                if (node != null)
+                                {
+                                    HtmlAttribute desc;
 
-                            //count++
-                            TableOperation retrieveOperation = TableOperation.Retrieve<Count>("Count", "Count");
-                            TableResult retrievedResult = count.Execute(retrieveOperation);
-                            Count updateEntity;
-                            if (retrievedResult.Result != null)
+                                    desc = node.Attributes["content"];
+                                    date = desc.Value;
+                                }
+                                var titleElement = htmlDoc.DocumentNode
+                                                      .Element("html")
+                                                      .Element("head")
+                                                      .Element("title");
+                                if (titleElement != null && titleElement.InnerText != "Error")
+                                {
+                                    title = titleElement.InnerText;
+                                }
+                                //here add to urlTable + increment count by 1
+                                HtmlClass newPage = new HtmlClass(url, title, date);
+                                TableOperation insertOperation = TableOperation.Insert(newPage);
+                                crawled.Execute(insertOperation); //add to table
+                                AlreadyCrawled.Add(url); //add to urls already crawled
+
+                                //update lastTen
+                                if (lastTen.Count == 10)
+                                {
+                                    lastTen.RemoveAt(0);
+
+                                }
+                                lastTen.Add(url);
+                                /*
+                                 * Update machine counter
+                                 * Error table 
+                                 * start of crawler
+                                 */
+                                //update last 10
+                                string tenString = String.Join(",", lastTen.ToArray());
+                                GenStats LastTenUpdate = new GenStats("lastTen", "lastTen", tenString);
+                                TableOperation replaceTen = TableOperation.InsertOrReplace(LastTenUpdate);
+                                stats.Execute(replaceTen);
+
+
+
+                                //Index count++
+                                TableOperation retrieveOperation = TableOperation.Retrieve<Count>("IndexCount", "IndexCount");
+                                TableResult retrievedResult = stats.Execute(retrieveOperation);
+                                Count updateEntity;
+                                if (retrievedResult.Result != null)
+                                {
+                                    int ct = ((Count)retrievedResult.Result).count;
+                                    updateEntity = new Count("IndexCount", "IndexCount", ct + 1);
+
+                                }
+                                else
+                                {
+                                    updateEntity = new Count("IndexCount", "IndexCount", 1);
+                                }
+
+                                TableOperation replaceOperation = TableOperation.InsertOrReplace(updateEntity);
+                                stats.Execute(replaceOperation);
+                            } catch (Exception e)
                             {
-                                int ct = ((Count)retrievedResult.Result).count;
-                                updateEntity = new Count(ct + 1);
+                                //add to Err table w/ E and Url
+                                CloudTable ErrorTbl = storageAccount.getTable("Error");
+                                TableOperation ErrorInsert = TableOperation.Insert(new Error(url, e.ToString()));
+                                ErrorTbl.Execute(ErrorInsert);
+                            }
+                            /*
+                            if (htmlDoc.ParseErrors != null && htmlDoc.ParseErrors.Count() > 0)
+                            {
+                               
+                            }
+                            else
+                            {
+                            } */
+
+                            TableOperation totalRetrieve = TableOperation.Retrieve<Count>("totalCount", "totalcount");
+                            TableResult totalResult = stats.Execute(totalRetrieve);
+                            Count updateTotal;
+                            if (totalResult.Result != null)
+                            {
+                                int ct = ((Count)totalResult.Result).count;
+                                updateTotal = new Count("totalCount", "totalCount", ct + 1);
 
                             }
                             else
                             {
-                                updateEntity = new Count(1);
+                                updateTotal = new Count("totalCount", "totalCount", 1);
                             }
 
-                            TableOperation replaceOperation = TableOperation.InsertOrReplace(updateEntity);
-                            count.Execute(replaceOperation);
+                            TableOperation replaceTotal = TableOperation.InsertOrReplace(updateTotal);
+                            stats.Execute(replaceTotal);
+
                         }
                     }
 
                 }
+
+                GenStats crawlState = new GenStats("state", "state", CrawlState);
+                TableOperation UpdateCrawl = TableOperation.InsertOrReplace(crawlState);
+                stats.Execute(UpdateCrawl);
+
+                GenStats memUsage = new GenStats("Usage", "memory", this.MemCounter.NextValue() + "");
+                TableOperation UpdateMem = TableOperation.InsertOrReplace(memUsage);
+                stats.Execute(UpdateMem);
+
+                GenStats CpuUsage = new GenStats("Usage", "cpu", this.CpuCounter.NextValue() + "");
+                TableOperation UpdateCpu = TableOperation.InsertOrReplace(CpuUsage);
+                stats.Execute(UpdateCpu);
 
             }
         }

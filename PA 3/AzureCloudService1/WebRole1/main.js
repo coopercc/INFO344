@@ -1,4 +1,9 @@
 ﻿$(function () {
+   indexSize();
+   totalCrawled();
+   LastTen();
+   QueueSize();
+
     $("#start").click(function () {
         $.ajax({
             url: "Admin.asmx/Start",
@@ -6,7 +11,7 @@
             contentType: "application/json; charset=utf-8",
             type: "POST",
             success: function (data) {
-
+                console.log("Started crawling");
             },
             error: function (x, y, z) {
                 console.log(x);
@@ -17,7 +22,7 @@
 
     $("#stop").click(function () {
         $.ajax({
-            url: "Admin.asmx/Start",
+            url: "Admin.asmx/Stop",
             data: "{}",
             contentType: "application/json; charset=utf-8",
             type: "POST",
@@ -33,7 +38,7 @@
 
     $("#continue").click(function () {
         $.ajax({
-            url: "Admin.asmx/Start",
+            url: "Admin.asmx/Continue",
             data: "{}",
             contentType: "application/json; charset=utf-8",
             type: "POST",
@@ -46,7 +51,104 @@
             }
         })
     });
+
+    $("#clear").click(function () {
+        $.ajax({
+            url: "Admin.asmx/Clear",
+            data: "{}",
+            contentType: "application/json; charset=utf-8",
+            type: "POST",
+            success: function (data) {
+                
+            },
+            error: function (x, y, z) {
+                console.log(x);
+                console.log(x.responseText + "  " + x.status);
+            }
+        })
+    });
+
+    function indexSize() {
+        $.ajax({
+            url: "Admin.asmx/IndexSize",
+            data: "{}",
+            contentType: "application/json; charset=utf-8",
+            type: "POST",
+            success: function (data) {
+                //put somewhere
+                $("#indexed").html(data.d);
+                console.log(data.d);
+            },
+            error: function (x, y, z) {
+                console.log(x);
+                console.log(x.responseText + "  " + x.status);
+            }
+        })
+    }
+
+    function QueueSize() {
+        $.ajax({
+            url: "Admin.asmx/QueueSize",
+            data: "{}",
+            contentType: "application/json; charset=utf-8",
+            type: "POST",
+            success: function (data) {
+                //put somewhere
+                $("#queueSize").html(data.d);
+                console.log(data);
+            },
+            error: function (x, y, z) {
+                console.log(x);
+                console.log(x.responseText + "  " + x.status);
+            }
+        })
+    }
+
+    function totalCrawled() {
+        $.ajax({
+            url: "Admin.asmx/totalCrawled",
+            data: "{}",
+            contentType: "application/json; charset=utf-8",
+            type: "POST",
+            success: function (data) {
+                //put somewhere
+                $("#total").html(data.d);
+                console.log(data.d);
+            },
+            error: function (x, y, z) {
+                console.log(x);
+                console.log(x.responseText + "  " + x.status);
+            }
+        })
+    }
+
+    function LastTen() {
+        $.ajax({
+            url: "Admin.asmx/LastTen",
+            data: "{}",
+            contentType: "application/json; charset=utf-8",
+            type: "POST",
+            success: function (data) {
+                //put somewhere, returns list of strings
+            },
+            error: function (x, y, z) {
+                console.log(x);
+                console.log(x.responseText + "  " + x.status);
+            }
+        })
+    }
 });
+
+/*
+JQUERY FUNCTIONALITY LEFT TO INCLUDE:
+    last 10 urls
+    Size of Queue
+    Size of Index
+    Error URLs
+    Worker role CPU%, Ram available
+
+*/
+
 
 /* How to do timed calls, like displaying recent 10
 

@@ -7,17 +7,18 @@ using System.Threading.Tasks;
 
 namespace ClassLibrary1
 {
-    public class Count: TableEntity
+    public class GenStats : TableEntity
     {
-        public Count(string pKey, string rKey, int count)
+        public GenStats(string pKey, string rKey, string val)
         {
             this.PartitionKey = pKey;
             this.RowKey = rKey;
-            this.count = count;
+            this.val = val;
         }
 
-        public Count() { }
+        public GenStats() { }
 
-        public int count { get; set; }
+        public string val { get; set; }
+
     }
 }

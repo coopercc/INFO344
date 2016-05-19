@@ -13,9 +13,33 @@
             - Retrieve data from index (get page title for specific URL)
          -->
     <div>
+        <h1>Controls:</h1>
+        
         <input type="button" value="Start Crawling" id="start" />
         <input type="button" value="Stop Crawling" id="stop" />
         <input type="button" value="Continue Crawling" id="continue" />
+        <input type="button" value="Clear Everything" id="Clear" />
+    </div>
+       
+    <div>
+        <h3>Crawler State: <inline id="state">idle</inline></h3>
+
+        <h2>Search for a Page:</h2>
+        <input type="text" id="UrlSearch" />
+        <input type="button" value="Search" id="startSearch" />
+    </div>
+
+    <div>
+        <h2>Stats:</h2>
+        <h3>CPU % Used: <inline id="cpu">45</inline></h3>
+        <h3>Memory Available: <inline id="mem">45</inline></h3>
+        <h3>Total URLs crawled: <inline id="total"></inline></h3>
+        <h3>Indexed URLs: <inline id="indexed"></inline></h3>
+        <h3>URLs in Queue: <inline id="queueSize"></inline></h3>
+    </div>
+
+    <div>
+
     </div>
 </body>
 </html>
