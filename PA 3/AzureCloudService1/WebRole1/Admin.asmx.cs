@@ -123,8 +123,6 @@ namespace WebRole1
                     res.Add(results[i]);
                 }
             }
-                //make call to stats table, lastTen row
-                //separate by , and add to res
 
             return res;
         }
@@ -132,7 +130,7 @@ namespace WebRole1
         [WebMethod]
         public string CrawlState()
         {
-            TableOperation retrieveOperation = TableOperation.Retrieve<Count>("state", "state");
+            TableOperation retrieveOperation = TableOperation.Retrieve<GenStats>("state", "state");
             TableResult retrievedResult = stats.Execute(retrieveOperation);
             return ((GenStats)retrievedResult.Result).val;
         }
@@ -141,6 +139,7 @@ namespace WebRole1
         public int QueueSize()
         {
             int res = 0;
+            urlQueue.FetchAttributes();
             if (urlQueue.ApproximateMessageCount != null)
             {
                 res = (int)urlQueue.ApproximateMessageCount;
@@ -149,31 +148,31 @@ namespace WebRole1
         }
 
         [WebMethod]
-        public float CpuUsage()
+        public string CpuUsage()
         {
-            TableOperation retrieveOperation = TableOperation.Retrieve<GenStats>("Usage", "Cpu");
+            TableOperation retrieveOperation = TableOperation.Retrieve<GenStats>("Usage", "cpu");
             TableResult retrievedResult = stats.Execute(retrieveOperation);
             if (retrievedResult.Result != null)
             {
-                return float.Parse(((GenStats)retrievedResult.Result).val, System.Globalization.CultureInfo.InvariantCulture);
+                return ((GenStats)retrievedResult.Result).val;
             }
             else
             {
-                return 0;
+                return "";
             }
         }
         [WebMethod]
-        public float MemUsage()
+        public string MemUsage()
         {
-            TableOperation retrieveOperation = TableOperation.Retrieve<GenStats>("Usage", "Mem");
+            TableOperation retrieveOperation = TableOperation.Retrieve<GenStats>("Usage", "memory");
             TableResult retrievedResult = stats.Execute(retrieveOperation);
             if (retrievedResult.Result != null)
             {
-                return float.Parse(((GenStats)retrievedResult.Result).val, System.Globalization.CultureInfo.InvariantCulture);
+                return ((GenStats)retrievedResult.Result).val;
             }
             else
             {
-                return 0;
+                return "";
             }
         }
 

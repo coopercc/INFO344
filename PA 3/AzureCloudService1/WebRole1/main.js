@@ -1,8 +1,19 @@
 ﻿$(function () {
-   indexSize();
-   totalCrawled();
-   LastTen();
-   QueueSize();
+    indexSize();
+    totalCrawled();
+    LastTen();
+    QueueSize();
+    getStatus();
+    getCPU();
+    getMem();
+
+    setInterval(indexSize, 3000);
+    setInterval(totalCrawled, 3000);
+    setInterval(LastTen, 3000);
+    setInterval(QueueSize, 3000);
+    setInterval(getStatus, 3000);
+    setInterval(getCPU, 3000);
+    setInterval(getMem, 3000);
 
     $("#start").click(function () {
         $.ajax({
@@ -75,9 +86,7 @@
             contentType: "application/json; charset=utf-8",
             type: "POST",
             success: function (data) {
-                //put somewhere
                 $("#indexed").html(data.d);
-                console.log(data.d);
             },
             error: function (x, y, z) {
                 console.log(x);
@@ -93,9 +102,7 @@
             contentType: "application/json; charset=utf-8",
             type: "POST",
             success: function (data) {
-                //put somewhere
                 $("#queueSize").html(data.d);
-                console.log(data);
             },
             error: function (x, y, z) {
                 console.log(x);
@@ -111,9 +118,7 @@
             contentType: "application/json; charset=utf-8",
             type: "POST",
             success: function (data) {
-                //put somewhere
                 $("#total").html(data.d);
-                console.log(data.d);
             },
             error: function (x, y, z) {
                 console.log(x);
@@ -129,7 +134,11 @@
             contentType: "application/json; charset=utf-8",
             type: "POST",
             success: function (data) {
-                //put somewhere, returns list of strings
+                var list = data.d;
+                $("#lastTen").empty();
+                for (var i = 0; i < list.length; i++) {
+                    $("#lastTen").append("<tr><td>" + list[i] + "<td></tr>");
+                }
             },
             error: function (x, y, z) {
                 console.log(x);
@@ -137,33 +146,61 @@
             }
         })
     }
+
+    function getStatus() {
+        $.ajax({
+            url: "Admin.asmx/CrawlState",
+            data: "{}",
+            contentType: "application/json; charset=utf-8",
+            type: "POST",
+            success: function (data) {
+                $("#state").html(data.d);
+            },
+            error: function (x, y, z) {
+                console.log(x);
+                console.log(x.responseText + "  " + x.status);
+            }
+        })
+    }
+
+    function getCPU() {
+        $.ajax({
+            url: "Admin.asmx/CpuUsage",
+            data: "{}",
+            contentType: "application/json; charset=utf-8",
+            type: "POST",
+            success: function (data) {
+                $("#cpu").html(data.d);
+                console.log("CPU: " + data.d);
+            },
+            error: function (x, y, z) {
+                console.log(x);
+                console.log(x.responseText + "  " + x.status);
+            }
+        })
+    }
+
+    function getMem() {
+        $.ajax({
+            url: "Admin.asmx/MemUsage",
+            data: "{}",
+            contentType: "application/json; charset=utf-8",
+            type: "POST",
+            success: function (data) {
+                $("#mem").html(data.d);
+                console.log("MEM: " + data.d);
+            },
+            error: function (x, y, z) {
+                console.log(x);
+                console.log(x.responseText + "  " + x.status);
+            }
+        })
+    }
+    
 });
 
 /*
 JQUERY FUNCTIONALITY LEFT TO INCLUDE:
-    last 10 urls
-    Size of Queue
-    Size of Index
     Error URLs
-    Worker role CPU%, Ram available
 
-*/
-
-
-/* How to do timed calls, like displaying recent 10
-
-function executeQuery() {
-$.ajax({
-    url: 'url/path/here',
-    success: function(data) {
-        // do something with the return value here if you like
-    }
-});
-setTimeout(executeQuery, 5000); // you could choose not to continue on failure...
-}
-
-$(document).ready(function() {
-    // run the first time; all subsequent calls will take care of themselves
-    setTimeout(executeQuery, 5000);
-});
 */

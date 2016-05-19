@@ -61,7 +61,7 @@ namespace WorkerRole1
 
             while (true)
             {
-                Thread.Sleep(50);
+                Thread.Sleep(10);
                 CloudQueueMessage adminMessage = admQueue.GetMessage();
                 if (adminMessage != null)
                 {

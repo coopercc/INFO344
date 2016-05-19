@@ -22,7 +22,7 @@
     </div>
        
     <div>
-        <h3>Crawler State: <inline id="state">idle</inline></h3>
+        <h3>Crawler State: <inline id="state"></inline></h3>
 
         <h2>Search for a Page:</h2>
         <input type="text" id="UrlSearch" />
@@ -31,15 +31,16 @@
 
     <div>
         <h2>Stats:</h2>
-        <h3>CPU % Used: <inline id="cpu">45</inline></h3>
-        <h3>Memory Available: <inline id="mem">45</inline></h3>
+        <h3>CPU % Used: <inline id="cpu"></inline></h3>
+        <h3>Memory Available: <inline id="mem"></inline></h3>
         <h3>Total URLs crawled: <inline id="total"></inline></h3>
         <h3>Indexed URLs: <inline id="indexed"></inline></h3>
         <h3>URLs in Queue: <inline id="queueSize"></inline></h3>
     </div>
 
     <div>
-
+        <h1>Last 10 URLs Crawled</h1>
+        <table id="lastTen"></table>
     </div>
 </body>
 </html>
