@@ -305,7 +305,7 @@ namespace WorkerRole1
                             {
                             } */
 
-                            TableOperation totalRetrieve = TableOperation.Retrieve<Count>("totalCount", "totalcount");
+                            TableOperation totalRetrieve = TableOperation.Retrieve<Count>("totalCount", "totalCount");
                             TableResult totalResult = stats.Execute(totalRetrieve);
                             Count updateTotal;
                             if (totalResult.Result != null)

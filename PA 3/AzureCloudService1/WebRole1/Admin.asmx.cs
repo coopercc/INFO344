@@ -113,7 +113,7 @@ namespace WebRole1
         {
             List<string> res = new List<string>();
 
-            TableOperation retrieveOperation = TableOperation.Retrieve<Count>("lastTen", "lastTen");
+            TableOperation retrieveOperation = TableOperation.Retrieve<GenStats>("lastTen", "lastTen");
             TableResult retrievedResult = stats.Execute(retrieveOperation);
             if (retrievedResult.Result != null)
             {
