@@ -50,6 +50,7 @@ namespace WorkerRole1
         /// </summary>
         public override void Run()
         {
+            
             bool running = false;
             admQueue = storageAccount.getQueue("admin"); //Stores Admin Messages
             urlQueue = storageAccount.getQueue("urls"); //Stores the URLS to be crawled
@@ -106,10 +107,6 @@ namespace WorkerRole1
                 }
 
 
-                /*
-                 * This is for making the sitemap work
-                 * Since the sitemap is started, just handle XML
-                 */
                 if (running)
                 {
                     if (xmls.Count != 0)
@@ -177,13 +174,13 @@ namespace WorkerRole1
                                 }
                                 else if (loc.Contains(".htm"))
                                 {
-                                    urlQueue.AddMessage(msg);
+                                    urlQueue.AddMessageAsync(msg);
                                     AlreadyAdded.Add(loc);
                                 }
                             }
                             else if (message.Contains(urlBR))
                             {
-                                urlQueue.AddMessage(msg);
+                                urlQueue.AddMessageAsync(msg);
                                 AlreadyAdded.Add(loc);
                             }
 
@@ -194,9 +191,6 @@ namespace WorkerRole1
                         CrawlState = "Crawling";
                     }
 
-                    /*
-                     * Here we will be doing the URL crawling
-                     */
                     CloudQueueMessage htmlMessage = urlQueue.GetMessage();
                     if (htmlMessage != null && CrawlState.Equals("Crawling"))
                     {
@@ -220,10 +214,10 @@ namespace WorkerRole1
                                         {
                                             HtmlAttribute att = link.Attributes["href"];
                                             string newLink = att.Value.ToString();
-                                            if (newLink.Contains(urlCnn) || newLink.Contains(urlBR))
+                                            if (newLink.Contains(urlCnn) || newLink.Contains(urlBR + "/articles/"))
                                             {
                                                 CloudQueueMessage msg = new CloudQueueMessage(newLink);
-                                                urlQueue.AddMessage(msg);
+                                                urlQueue.AddMessageAsync(msg);
                                             }
                                         }
                                     }
@@ -259,11 +253,7 @@ namespace WorkerRole1
 
                                 }
                                 lastTen.Add(url);
-                                /*
-                                 * Update machine counter
-                                 * Error table 
-                                 * start of crawler
-                                 */
+
                                 //update last 10
                                 string tenString = String.Join(",", lastTen.ToArray());
                                 GenStats LastTenUpdate = new GenStats("lastTen", "lastTen", tenString);
@@ -296,14 +286,6 @@ namespace WorkerRole1
                                 TableOperation ErrorInsert = TableOperation.Insert(new Error(url, e.ToString()));
                                 ErrorTbl.Execute(ErrorInsert);
                             }
-                            /*
-                            if (htmlDoc.ParseErrors != null && htmlDoc.ParseErrors.Count() > 0)
-                            {
-                               
-                            }
-                            else
-                            {
-                            } */
 
                             TableOperation totalRetrieve = TableOperation.Retrieve<Count>("totalCount", "totalCount");
                             TableResult totalResult = stats.Execute(totalRetrieve);
@@ -338,8 +320,9 @@ namespace WorkerRole1
                 GenStats CpuUsage = new GenStats("Usage", "cpu", this.CpuCounter.NextValue() + "");
                 TableOperation UpdateCpu = TableOperation.InsertOrReplace(CpuUsage);
                 stats.Execute(UpdateCpu);
-
+                
             }
+            
         }
 
 

@@ -10,6 +10,7 @@ using System.Web.Services;
 using ClassLibrary1;
 using Microsoft.WindowsAzure.Storage.Table;
 using System.Threading;
+using System.Text;
 
 namespace WebRole1
 {
@@ -128,11 +129,59 @@ namespace WebRole1
         }
 
         [WebMethod]
+        public List<string> getErrors()
+        {
+            List<string> res = new List<string>();
+            CloudTable ErrorTbl = storageAccount.getTable("Error");
+            TableQuery<Error> errQuery = new TableQuery<Error>().Where(TableQuery.GenerateFilterCondition("PartitionKey", QueryComparisons.Equal,"Error"));
+
+            foreach(Error entity in ErrorTbl.ExecuteQuery(errQuery))
+            {
+                res.Add(entity.Url);
+            }
+            return res;
+        }
+
+        [WebMethod]
+        public string searchUrl(string url)
+        {
+            string res = "Sorry, no titles found";
+
+            StringBuilder sb = new StringBuilder();
+            foreach (char c in url)
+            {
+                if ((c >= '0' && c <= '9') || (c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z')
+                    || c == ' ' || c == ',' || c == ';' || c == '-' || c == '(' || c == ')' || c == '.')
+                {
+                    sb.Append(c);
+                }
+            }
+
+            string urlRow = sb.ToString();
+
+
+            CloudTable crawled = storageAccount.getTable("crawled");
+            TableOperation retrieveOperation = TableOperation.Retrieve<HtmlClass>("crawled", urlRow);
+            TableResult retrievedResult = crawled.Execute(retrieveOperation);
+            if (retrievedResult.Result  != null)
+            {
+                res = ((HtmlClass)retrievedResult.Result).Title;
+            }
+
+            return res;
+        }
+
+        [WebMethod]
         public string CrawlState()
         {
             TableOperation retrieveOperation = TableOperation.Retrieve<GenStats>("state", "state");
             TableResult retrievedResult = stats.Execute(retrieveOperation);
-            return ((GenStats)retrievedResult.Result).val;
+            if ((GenStats)retrievedResult.Result != null)
+            {
+                return ((GenStats)retrievedResult.Result).val;
+            }
+
+            return "Idle";
         }
 
         [WebMethod]

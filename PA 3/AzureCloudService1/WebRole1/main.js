@@ -6,6 +6,7 @@
     getStatus();
     getCPU();
     getMem();
+    getErrors();
 
     setInterval(indexSize, 3000);
     setInterval(totalCrawled, 3000);
@@ -14,6 +15,7 @@
     setInterval(getStatus, 3000);
     setInterval(getCPU, 3000);
     setInterval(getMem, 3000);
+    setInterval(getErrors, 3000);
 
     $("#start").click(function () {
         $.ajax({
@@ -71,6 +73,22 @@
             type: "POST",
             success: function (data) {
                 
+            },
+            error: function (x, y, z) {
+                console.log(x);
+                console.log(x.responseText + "  " + x.status);
+            }
+        })
+    });
+
+    $("#startSearch").click(function () {
+        $.ajax({
+            url: "Admin.asmx/searchUrl",
+            data: JSON.stringify({url: $("#UrlSearch").val()}),
+            contentType: "application/json; charset=utf-8",
+            type: "POST",
+            success: function (data) {
+                $("#results").html(data.d);
             },
             error: function (x, y, z) {
                 console.log(x);
@@ -138,6 +156,26 @@
                 $("#lastTen").empty();
                 for (var i = 0; i < list.length; i++) {
                     $("#lastTen").append("<tr><td>" + list[i] + "<td></tr>");
+                }
+            },
+            error: function (x, y, z) {
+                console.log(x);
+                console.log(x.responseText + "  " + x.status);
+            }
+        })
+    }
+
+    function getErrors() {
+        $.ajax({
+            url: "Admin.asmx/getErrors",
+            data: "{}",
+            contentType: "application/json; charset=utf-8",
+            type: "POST",
+            success: function (data) {
+                var list = data.d;
+                $("#Errors").empty();
+                for (var i = 0; i < list.length; i++) {
+                    $("#Errors").append("<tr><td>" + list[i] + "<td></tr>");
                 }
             },
             error: function (x, y, z) {
