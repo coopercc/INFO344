@@ -199,11 +199,12 @@ namespace WorkerRole1
                         
                         if (!AlreadyCrawled.Contains(url))
                         {
-                            HtmlDocument htmlDoc = new HtmlWeb().Load(url);
-                            string title = "";
-                            string date = "05/14/2016";
+                            
                             try
                             {
+                                HtmlDocument htmlDoc = new HtmlWeb().Load(url);
+                                string title = "";
+                                string date = "05/14/2016";
                                 if (htmlDoc.DocumentNode != null)
                                 {
                                     HtmlNode bodyNode = htmlDoc.DocumentNode.SelectSingleNode("//body");
