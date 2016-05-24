@@ -65,6 +65,7 @@
   </ItemGroup>
   <ItemGroup>
     <PublishProfile Include="Profiles\info344CooperCainProduction.azurePubxml" />
+    <PublishProfile Include="Profiles\info344CooperCainProduction1.azurePubxml" />
   </ItemGroup>
   <!-- Import the target files for this project template -->
   <PropertyGroup>

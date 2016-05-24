@@ -8,14 +8,14 @@
     getMem();
     getErrors();
 
-    setInterval(indexSize, 3000);
-    setInterval(totalCrawled, 3000);
-    setInterval(LastTen, 3000);
-    setInterval(QueueSize, 3000);
-    setInterval(getStatus, 3000);
-    setInterval(getCPU, 3000);
-    setInterval(getMem, 3000);
-    setInterval(getErrors, 3000);
+    setInterval(indexSize, 1000);
+    setInterval(totalCrawled, 1000);
+    setInterval(LastTen, 1000);
+    setInterval(QueueSize, 1000);
+    setInterval(getStatus, 1000);
+    setInterval(getCPU, 1000);
+    setInterval(getMem, 1000);
+    setInterval(getErrors, 1000);
 
     $("#start").click(function () {
         $.ajax({

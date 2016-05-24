@@ -12,14 +12,24 @@ namespace ClassLibrary1
         public Error (string url, string error)
         {
             this.PartitionKey = "Error";
-            this.RowKey = "Error";
 
+            StringBuilder sb = new StringBuilder();
+            foreach (char c in url)
+            {
+                if ((c >= '0' && c <= '9') || (c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z')
+                    || c == ' ' || c == ',' || c == ';' || c == '-' || c == '(' || c == ')' || c == '.')
+                {
+                    sb.Append(c);
+                }
+            }
+
+            string urlRow = sb.ToString();
+            this.RowKey = urlRow;
             this.Url = url;
             this.ErrorMsg = error;
         }
 
         public Error() { }
-
         public string Url { get; set; }
         public string ErrorMsg { get; set; }
 
