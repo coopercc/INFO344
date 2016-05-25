@@ -284,7 +284,7 @@ namespace WorkerRole1
                             {
                                 //add to Err table w/ E and Url
                                 CloudTable ErrorTbl = storageAccount.getTable("Error");
-                                TableOperation ErrorInsert = TableOperation.Insert(new Error(url, e.ToString()));
+                                TableOperation ErrorInsert = TableOperation.InsertOrReplace(new Error(url, e.ToString()));
                                 ErrorTbl.Execute(ErrorInsert);
                             }
 
