@@ -149,9 +149,9 @@ namespace WorkerRole1
                                 }
                             }
 
-                            if (loc.EndsWith("/"))
+                            if (loc.StartsWith("//"))
                             {
-                                loc = loc + "index.html";
+                                loc = "http:" + loc;
                             }
 
                             if (loc.StartsWith("/"))
@@ -160,7 +160,8 @@ namespace WorkerRole1
                                 {
                                     loc = "www." + urlCnn + loc;
                                 }
-                                else if (message.Contains(urlBR)){
+                                else if (message.Contains(urlBR))
+                                {
                                     loc = "www." + urlBR + loc;
                                 }
                             }
@@ -186,7 +187,8 @@ namespace WorkerRole1
 
                         }
 
-                    } else
+                    }
+                    else
                     {
                         CrawlState = "Crawling";
                     }
@@ -196,10 +198,10 @@ namespace WorkerRole1
                     {
                         string url = htmlMessage.AsString;
                         urlQueue.DeleteMessage(htmlMessage);
-                        
+
                         if (!AlreadyCrawled.Contains(url))
                         {
-                            
+
                             try
                             {
                                 HtmlDocument htmlDoc = new HtmlWeb().Load(url);
@@ -280,7 +282,8 @@ namespace WorkerRole1
 
                                 TableOperation replaceOperation = TableOperation.InsertOrReplace(updateEntity);
                                 stats.Execute(replaceOperation);
-                            } catch (Exception e)
+                            }
+                            catch (Exception e)
                             {
                                 //add to Err table w/ E and Url
                                 CloudTable ErrorTbl = storageAccount.getTable("Error");
@@ -308,19 +311,19 @@ namespace WorkerRole1
                         }
                     }
 
+                    GenStats crawlState = new GenStats("state", "state", CrawlState);
+                    TableOperation UpdateCrawl = TableOperation.InsertOrReplace(crawlState);
+                    stats.Execute(UpdateCrawl);
+
+                    GenStats memUsage = new GenStats("Usage", "memory", this.MemCounter.NextValue() + "");
+                    TableOperation UpdateMem = TableOperation.InsertOrReplace(memUsage);
+                    stats.Execute(UpdateMem);
+
+                    GenStats CpuUsage = new GenStats("Usage", "cpu", this.CpuCounter.NextValue() + "");
+                    TableOperation UpdateCpu = TableOperation.InsertOrReplace(CpuUsage);
+                    stats.Execute(UpdateCpu);
+
                 }
-
-                GenStats crawlState = new GenStats("state", "state", CrawlState);
-                TableOperation UpdateCrawl = TableOperation.InsertOrReplace(crawlState);
-                stats.Execute(UpdateCrawl);
-
-                GenStats memUsage = new GenStats("Usage", "memory", this.MemCounter.NextValue() + "");
-                TableOperation UpdateMem = TableOperation.InsertOrReplace(memUsage);
-                stats.Execute(UpdateMem);
-
-                GenStats CpuUsage = new GenStats("Usage", "cpu", this.CpuCounter.NextValue() + "");
-                TableOperation UpdateCpu = TableOperation.InsertOrReplace(CpuUsage);
-                stats.Execute(UpdateCpu);
                 
             }
             

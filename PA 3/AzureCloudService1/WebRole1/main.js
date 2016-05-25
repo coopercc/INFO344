@@ -8,14 +8,16 @@
     getMem();
     getErrors();
 
-    setInterval(indexSize, 1000);
-    setInterval(totalCrawled, 1000);
-    setInterval(LastTen, 1000);
-    setInterval(QueueSize, 1000);
-    setInterval(getStatus, 1000);
-    setInterval(getCPU, 1000);
-    setInterval(getMem, 1000);
-    setInterval(getErrors, 1000);
+    $('#refresh').click(function () {
+        indexSize();
+        totalCrawled();
+        LastTen();
+        QueueSize();
+        getStatus();
+        getCPU();
+        getMem();
+        getErrors();
+    });
 
     $("#start").click(function () {
         $.ajax({
@@ -72,7 +74,8 @@
             contentType: "application/json; charset=utf-8",
             type: "POST",
             success: function (data) {
-                
+                console.log("Clear running");
+
             },
             error: function (x, y, z) {
                 console.log(x);
@@ -209,7 +212,6 @@
             type: "POST",
             success: function (data) {
                 $("#cpu").html(data.d);
-                console.log("CPU: " + data.d);
             },
             error: function (x, y, z) {
                 console.log(x);
@@ -226,7 +228,6 @@
             type: "POST",
             success: function (data) {
                 $("#mem").html(data.d);
-                console.log("MEM: " + data.d);
             },
             error: function (x, y, z) {
                 console.log(x);
@@ -235,10 +236,4 @@
         })
     }
     
-});
-
-/*
-JQUERY FUNCTIONALITY LEFT TO INCLUDE:
-    Error URLs
-
-*/
+}); 

@@ -62,7 +62,6 @@ namespace WebRole1
         public void Clear()
         {
             //Delete all Queues and tables, reinstate them after a 40s pause
-            admin.Delete();
             stats.Delete();
             urlQueue.Delete();
             storageAccount.getTable("crawled").Delete();
@@ -71,7 +70,6 @@ namespace WebRole1
             Thread.Sleep(40000);
             //redeclare all
             stats = storageAccount.getTable("stats");
-            admin = storageAccount.getQueue("admin");
             urlQueue = storageAccount.getQueue("urls");
             CloudTable crawled = storageAccount.getTable("crawled");
             CloudTable Errors = storageAccount.getTable("Error");
