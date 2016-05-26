@@ -10,9 +10,10 @@ namespace ClassLibrary1
 {
     public class HtmlClass : TableEntity
     {
-        public HtmlClass(string url, string title, string date)
+        public HtmlClass(string word, string url, string title, string date)
         {
-            this.PartitionKey = "crawled";
+
+            this.PartitionKey = word;
 
             StringBuilder sb = new StringBuilder();
             foreach (char c in url)
@@ -28,7 +29,6 @@ namespace ClassLibrary1
             this.RowKey = rowUrl;
 
             this.Title = title;
-            this.Date = date;
             this.Url = url;
             DateTime Timestamp = DateTime.Now;
         }
@@ -36,7 +36,6 @@ namespace ClassLibrary1
         public HtmlClass() { }
 
         public string Title { get; set; }
-        public string Date { get; set; }
         public string Url { get; set; }
 
     }

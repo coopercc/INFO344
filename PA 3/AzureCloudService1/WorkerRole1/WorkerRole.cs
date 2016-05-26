@@ -31,6 +31,7 @@ namespace WorkerRole1
         private HashSet<string> AlreadyCrawled = new HashSet<string>();
 
         private List<string> lastTen = new List<string>();
+        private List<string> lastTenErrors = new List<string>();
         private string CrawlState;
         private PerformanceCounter MemCounter = new PerformanceCounter("Memory", "Available MBytes");
         private PerformanceCounter CpuCounter = new PerformanceCounter("Process", "% Processor Time", Process.GetCurrentProcess().ProcessName);
@@ -166,7 +167,7 @@ namespace WorkerRole1
                                 }
                             }
 
-                            if (loc.Contains(urlCnn) && dt.Year >= 2016 && dt.Month >= 3 && allowed && !AlreadyAdded.Contains(loc))
+                            if (loc.Contains(urlCnn) && dt.Year >= 2016 && dt.Month >= 4 && allowed && !AlreadyAdded.Contains(loc))
                             {
 
                                 if (loc.EndsWith(".xml"))
@@ -243,11 +244,32 @@ namespace WorkerRole1
                                 {
                                     title = titleElement.InnerText;
                                 }
-                                //here add to urlTable + increment count by 1
-                                HtmlClass newPage = new HtmlClass(url, title, date);
-                                TableOperation insertOperation = TableOperation.Insert(newPage);
-                                crawled.Execute(insertOperation); //add to table
-                                AlreadyCrawled.Add(url); //add to urls already crawled
+
+                                string[] titleArray = title.Split(' ');
+                                foreach (string str in titleArray)
+                                {
+                                    StringBuilder titles = new StringBuilder();
+                                    foreach (char c in str)
+                                    {
+                                        if ((c >= '0' && c <= '9') || (c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z'))
+                                        {
+                                            titles.Append(Char.ToLower(c));
+                                        }
+                                    }
+
+                                    string word = titles.ToString();
+
+
+                                    if (word != "")
+                                    {
+                                        HtmlClass newPage = new HtmlClass(word, url, title, date);
+                                        TableOperation insertOperation = TableOperation.Insert(newPage);
+                                        crawled.Execute(insertOperation); //add to table
+                                        AlreadyCrawled.Add(url); //add to urls already crawled
+                                    }
+
+                                }
+                               
 
                                 //update lastTen
                                 if (lastTen.Count == 10)
@@ -285,10 +307,18 @@ namespace WorkerRole1
                             }
                             catch (Exception e)
                             {
-                                //add to Err table w/ E and Url
-                                CloudTable ErrorTbl = storageAccount.getTable("Error");
-                                TableOperation ErrorInsert = TableOperation.InsertOrReplace(new Error(url, e.ToString()));
-                                ErrorTbl.Execute(ErrorInsert);
+                                if (lastTenErrors.Count == 10)
+                                {
+                                    lastTenErrors.RemoveAt(0);
+
+                                }
+                                lastTenErrors.Add(url);
+
+                                //update last 10 Errors
+                                string tenStringErr = String.Join(",", lastTenErrors.ToArray());
+                                GenStats LastTenUpdateErr = new GenStats("lastTenErr", "lastTenErr", tenStringErr);
+                                TableOperation replaceTenErr = TableOperation.InsertOrReplace(LastTenUpdateErr);
+                                stats.Execute(replaceTenErr);
                             }
 
                             TableOperation totalRetrieve = TableOperation.Retrieve<Count>("totalCount", "totalCount");

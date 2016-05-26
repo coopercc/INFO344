@@ -130,13 +130,18 @@ namespace WebRole1
         public List<string> getErrors()
         {
             List<string> res = new List<string>();
-            CloudTable ErrorTbl = storageAccount.getTable("Error");
-            TableQuery<Error> errQuery = new TableQuery<Error>().Where(TableQuery.GenerateFilterCondition("PartitionKey", QueryComparisons.Equal,"Error"));
 
-            foreach(Error entity in ErrorTbl.ExecuteQuery(errQuery))
+            TableOperation retrieveOperation = TableOperation.Retrieve<GenStats>("lastTenErr", "lastTenErr");
+            TableResult retrievedResult = stats.Execute(retrieveOperation);
+            if (retrievedResult.Result != null)
             {
-                res.Add(entity.Url);
+                string[] results = ((GenStats)retrievedResult.Result).val.Split(',');
+                for (int i = 0; i <= results.Length - 1; i++)
+                {
+                    res.Add(results[i]);
+                }
             }
+
             return res;
         }
 
