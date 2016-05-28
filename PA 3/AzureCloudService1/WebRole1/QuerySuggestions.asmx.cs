@@ -11,6 +11,8 @@ using System.IO;
 using System.Diagnostics;
 using ClassLibrary1;
 using System.Configuration;
+using ClassLibrary1;
+using Microsoft.WindowsAzure.Storage.Table;
 
 namespace WebRole1
 {
@@ -22,11 +24,13 @@ namespace WebRole1
     [System.ComponentModel.ToolboxItem(false)]
     // To allow this Web Service to be called from script, using ASP.NET AJAX, uncomment the following line. 
     [System.Web.Script.Services.ScriptService]
-    public class GetQuerySuggestions : System.Web.Services.WebService
+    public class QuerySuggestions : System.Web.Services.WebService
     {
         public static Trie main; //Store Trie structure
         private string filePath = Path.GetTempPath() + "\\wiki.txt"; //Path to file holding the Wiki titkes
         private PerformanceCounter MemCounter = new PerformanceCounter("Memory", "Available MBytes");
+        private static AzureConnection storageAccount = new AzureConnection(ConfigurationManager.AppSettings["StorageConnectionString"]);
+
 
         /// <summary>
         /// This method connects to the blob storage holding the wiki title file and downloads it to a local copy
@@ -34,9 +38,7 @@ namespace WebRole1
         [WebMethod]
         public void ConnectBlob()
         {
-            CloudStorageAccount storageAccount = CloudStorageAccount.Parse(ConfigurationManager.AppSettings["StorageConnectionString"]);
-            CloudBlobClient blobClient = storageAccount.CreateCloudBlobClient();
-            CloudBlobContainer container = blobClient.GetContainerReference("info344");
+            CloudBlobContainer container = storageAccount.getBlob("info344");
             CloudBlockBlob blockBlob = container.GetBlockBlobReference("title-new.txt");
 
             using (var fileStream = System.IO.File.OpenWrite(filePath))
@@ -76,6 +78,16 @@ namespace WebRole1
             }
 
             file.Close();
+
+            CloudTable stats = storageAccount.getTable("stats");
+            GenStats TrieCount = new GenStats("Trie", "TrieCount", count.ToString());
+            GenStats TrielastWord = new GenStats("Trie", "lastWord", lastWord);
+
+            TableBatchOperation updateTrieStats = new TableBatchOperation();
+            updateTrieStats.InsertOrReplace(TrieCount);
+            updateTrieStats.InsertOrReplace(TrielastWord);
+            stats.ExecuteBatch(updateTrieStats);
+
             return count + " " + lastWord;
         }
 

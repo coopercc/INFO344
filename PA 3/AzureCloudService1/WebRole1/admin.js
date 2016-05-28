@@ -7,6 +7,7 @@
     getCPU();
     getMem();
     getErrors();
+    getTrie();
 
     $('#refresh').click(function () {
         indexSize();
@@ -17,6 +18,7 @@
         getCPU();
         getMem();
         getErrors();
+        getTrie();
     });
 
     $("#start").click(function () {
@@ -228,6 +230,27 @@
             type: "POST",
             success: function (data) {
                 $("#mem").html(data.d);
+            },
+            error: function (x, y, z) {
+                console.log(x);
+                console.log(x.responseText + "  " + x.status);
+            }
+        })
+    }
+
+    function getTrie() {
+        $.ajax({
+            url: "Admin.asmx/TrieStats",
+            data: "{}",
+            contentType: "application/json; charset=utf-8",
+            type: "POST",
+            success: function (data) {
+                var list = data.d;
+                $("#lastWord").empty();
+                $("#trieCount").empty();
+
+                $("#trieCount").html(list[0]);
+                $("#lastWord").html(list[1]);
             },
             error: function (x, y, z) {
                 console.log(x);

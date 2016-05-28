@@ -1,4 +1,5 @@
 ﻿using Microsoft.WindowsAzure.Storage;
+using Microsoft.WindowsAzure.Storage.Blob;
 using Microsoft.WindowsAzure.Storage.Queue;
 using Microsoft.WindowsAzure.Storage.Table;
 using System;
@@ -34,6 +35,12 @@ namespace ClassLibrary1
             CloudTable table = tableClient.GetTableReference(name);
             table.CreateIfNotExists();
             return table;
+        }
+
+        public CloudBlobContainer getBlob(string name)
+        {
+            CloudBlobClient blobClient = storageAccount.CreateCloudBlobClient();
+            return blobClient.GetContainerReference(name);
         }
     }
 }

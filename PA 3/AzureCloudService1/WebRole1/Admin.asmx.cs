@@ -145,33 +145,34 @@ namespace WebRole1
             return res;
         }
 
+        //passes in a phrase
+        //go through each word and add all URLS to a list. LINQ to find top 20
         [WebMethod]
-        public string searchUrl(string url)
+        public List<string> searchUrl(string searchPhrase)
         {
-            string res = "Sorry, no titles found";
+            List<string> res = new List<string>();
 
-            StringBuilder sb = new StringBuilder();
-            foreach (char c in url)
+            string[] searchKeys = searchPhrase.Split(' ');
+            foreach (string key in searchKeys)
             {
-                if ((c >= '0' && c <= '9') || (c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z')
-                    || c == ' ' || c == ',' || c == ';' || c == '-' || c == '(' || c == ')' || c == '.')
+                CloudTable crawled = storageAccount.getTable("crawled");
+                TableQuery<HtmlClass> keyQuery = new TableQuery<HtmlClass>()
+                    .Where(TableQuery.GenerateFilterCondition("PartitionKey", QueryComparisons.Equal, key));
+
+                foreach(HtmlClass entity in crawled.ExecuteQuery(keyQuery))
                 {
-                    sb.Append(c);
+                    res.Add(entity.Url);
                 }
+
             }
 
-            string urlRow = sb.ToString();
+            List<string> newRes = res.GroupBy(x => x)
+                .OrderByDescending(c => c.Count())
+                .Take(20)
+                .Select(g =>g.Key)
+                .ToList();
 
-
-            CloudTable crawled = storageAccount.getTable("crawled");
-            TableOperation retrieveOperation = TableOperation.Retrieve<HtmlClass>("crawled", urlRow);
-            TableResult retrievedResult = crawled.Execute(retrieveOperation);
-            if (retrievedResult.Result  != null)
-            {
-                res = ((HtmlClass)retrievedResult.Result).Title;
-            }
-
-            return res;
+            return newRes;
         }
 
         [WebMethod]
@@ -226,6 +227,35 @@ namespace WebRole1
             {
                 return "";
             }
+        }
+
+        public List<string> TrieStats()
+        {
+            List<string> res = new List<string>();
+            TableOperation retrieveOperation = TableOperation.Retrieve<GenStats>("Trie", "TrieCount");
+            TableResult retrievedResult = stats.Execute(retrieveOperation);
+            if (retrievedResult.Result != null)
+            {
+                res.Add(((GenStats)retrievedResult.Result).val);
+            }
+            else
+            {
+                res.Add("");
+            }
+
+            TableOperation retrieveOperation2 = TableOperation.Retrieve<GenStats>("Trie", "lastWord");
+            TableResult retrievedResult2 = stats.Execute(retrieveOperation2);
+            if (retrievedResult2.Result != null)
+            {
+                res.Add(((GenStats)retrievedResult2.Result).val);
+            }
+            else
+            {
+                res.Add("");
+            }
+
+            return res;
+
         }
 
     }
