@@ -28,6 +28,7 @@ namespace WebRole1
         private CloudQueue admin;
         private CloudTable stats;
         private CloudQueue urlQueue;
+        private static Dictionary<string, List<string>> cache = new Dictionary<string, List<string>>();
 
         public Admin()
         {
@@ -46,7 +47,6 @@ namespace WebRole1
         [WebMethod]
         public void Stop()
         {
-            //Clear everything (index/table, queue/pipeline, stop all worker roles)
             CloudQueueMessage message = new CloudQueueMessage("stop");
             admin.AddMessage(message);
         }
@@ -61,14 +61,12 @@ namespace WebRole1
         [WebMethod]
         public void Clear()
         {
-            //Delete all Queues and tables, reinstate them after a 40s pause
             stats.Delete();
             urlQueue.Delete();
             storageAccount.getTable("crawled").Delete();
             storageAccount.getTable("Error").Delete();
 
             Thread.Sleep(40000);
-            //redeclare all
             stats = storageAccount.getTable("stats");
             urlQueue = storageAccount.getQueue("urls");
             CloudTable crawled = storageAccount.getTable("crawled");
@@ -111,7 +109,6 @@ namespace WebRole1
         public List<string> LastTen()
         {
             List<string> res = new List<string>();
-
             TableOperation retrieveOperation = TableOperation.Retrieve<GenStats>("lastTen", "lastTen");
             TableResult retrievedResult = stats.Execute(retrieveOperation);
             if (retrievedResult.Result != null)
@@ -130,7 +127,6 @@ namespace WebRole1
         public List<string> getErrors()
         {
             List<string> res = new List<string>();
-
             TableOperation retrieveOperation = TableOperation.Retrieve<GenStats>("lastTenErr", "lastTenErr");
             TableResult retrievedResult = stats.Execute(retrieveOperation);
             if (retrievedResult.Result != null)
@@ -150,29 +146,41 @@ namespace WebRole1
         [WebMethod]
         public List<string> searchUrl(string searchPhrase)
         {
-            List<string> res = new List<string>();
-
-            string[] searchKeys = searchPhrase.Split(' ');
-            foreach (string key in searchKeys)
+            if (cache.Count() >= 100)
             {
-                CloudTable crawled = storageAccount.getTable("crawled");
-                TableQuery<HtmlClass> keyQuery = new TableQuery<HtmlClass>()
-                    .Where(TableQuery.GenerateFilterCondition("PartitionKey", QueryComparisons.Equal, key));
-
-                foreach(HtmlClass entity in crawled.ExecuteQuery(keyQuery))
-                {
-                    res.Add(entity.Url);
-                }
-
+                cache = new Dictionary<string, List<string>>();
             }
 
-            List<string> newRes = res.GroupBy(x => x)
-                .OrderByDescending(c => c.Count())
-                .Take(20)
-                .Select(g =>g.Key)
-                .ToList();
+            if (cache.ContainsKey(searchPhrase))
+            {
+                return cache[searchPhrase];
+            } else
+            {
+                List<string> res = new List<string>();
+                string[] searchKeys = searchPhrase.Split(' ');
+                foreach (string key in searchKeys)
+                {
+                    CloudTable crawled = storageAccount.getTable("crawled");
+                    TableQuery<HtmlClass> keyQuery = new TableQuery<HtmlClass>()
+                        .Where(TableQuery.GenerateFilterCondition("PartitionKey", QueryComparisons.Equal, key));
 
-            return newRes;
+                    foreach (HtmlClass entity in crawled.ExecuteQuery(keyQuery))
+                    {
+                        res.Add(entity.Url);
+                    }
+                }
+
+                List<string> newRes = res.GroupBy(x => x)
+                    .OrderByDescending(c => c.Count())
+                    .Take(20)
+                    .Select(g => g.Key)
+                    .ToList();
+
+                cache[searchPhrase] = newRes;
+
+                return newRes;
+            }
+            
         }
 
         [WebMethod]
@@ -184,7 +192,6 @@ namespace WebRole1
             {
                 return ((GenStats)retrievedResult.Result).val;
             }
-
             return "Idle";
         }
 
@@ -214,6 +221,7 @@ namespace WebRole1
                 return "";
             }
         }
+
         [WebMethod]
         public string MemUsage()
         {
@@ -254,10 +262,7 @@ namespace WebRole1
             {
                 res.Add("");
             }
-
             return res;
-
         }
-
     }
 }

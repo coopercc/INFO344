@@ -21,17 +21,47 @@
     });
 
     $("#submitSearch").click(function () {
+        var searchQuery = $("#query").val();
+
+        function onSuccess(data) {
+            console.log(data);
+            var nbaResults = JSON.stringify(data);
+            if (nbaResults != "") {
+                console.log(nbaResults);
+            }
+        }
+
+        $.ajax({
+            crossDomain: true,
+            contentType: "application/json; charset=utf-8",
+            url: "http://ec2-52-37-84-201.us-west-2.compute.amazonaws.com/search.php",
+            data: { name: searchQuery },
+            dataType: "jsonP",
+            success: onSuccess
+        });
+
+
+
         $.ajax({
             url: "Admin.asmx/searchUrl",
-            data: JSON.stringify({ searchPhrase: $("#query").val() }),
+            data: JSON.stringify({ searchPhrase: searchQuery }),
             contentType: "application/json; charset=utf-8",
             type: "POST",
             success: function (data) {
                 $("#results").html("");
-                for(var string in data.d) {
-                    $("#results").append("<div>" + string + "</div>");
+
+                for (var i = 0; i < data.d.length; i++ ) {
+                    var div = $("<div class='well'></div>");
+                    var link = $("<a href=" + data.d[i] + "></a>")
+                    link.html(data.d[i]);
+                    div.html(link);
+                    $("#results").append(div);
+                    console.log(data.d[i]);
                 }
-                $("#results").html(data.d);
+
+
+
+
             },
             error: function (x, y, z) {
                 console.log(x);
