@@ -89,7 +89,7 @@
     $("#startSearch").click(function () {
         $.ajax({
             url: "Admin.asmx/searchUrl",
-            data: JSON.stringify({url: $("#UrlSearch").val()}),
+            data: JSON.stringify({ searchPhrase: $("#UrlSearch").val() }),
             contentType: "application/json; charset=utf-8",
             type: "POST",
             success: function (data) {

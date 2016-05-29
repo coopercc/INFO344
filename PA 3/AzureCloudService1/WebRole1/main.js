@@ -3,7 +3,7 @@
     $('#query').on('keyup', function () {
         //Calls the SearchTrie method with the text in the textbox
         $.ajax({
-            url: "GetQuerySuggestions.asmx/SearchTrie",
+            url: "QuerySuggestions.asmx/SearchTrie",
             data: "{str: '" + $(this).val() + "'}",
             contentType: "application/json; charset=utf-8",
             type: "POST",
@@ -20,16 +20,16 @@
         });
     });
 
-    $("#startSearch").click(function () {
+    $("#submitSearch").click(function () {
         $.ajax({
             url: "Admin.asmx/searchUrl",
-            data: JSON.stringify({ url: $("#UrlSearch").val() }),
+            data: JSON.stringify({ searchPhrase: $("#query").val() }),
             contentType: "application/json; charset=utf-8",
             type: "POST",
             success: function (data) {
                 $("#results").html("");
                 for(var string in data.d) {
-                    $("#results").append(string);
+                    $("#results").append("<div>" + string + "</div>");
                 }
                 $("#results").html(data.d);
             },

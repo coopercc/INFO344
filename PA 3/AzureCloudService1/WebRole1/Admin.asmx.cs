@@ -229,6 +229,7 @@ namespace WebRole1
             }
         }
 
+        [WebMethod]
         public List<string> TrieStats()
         {
             List<string> res = new List<string>();

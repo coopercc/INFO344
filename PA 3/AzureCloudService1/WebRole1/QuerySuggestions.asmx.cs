@@ -39,7 +39,7 @@ namespace WebRole1
         public void ConnectBlob()
         {
             CloudBlobContainer container = storageAccount.getBlob("info344");
-            CloudBlockBlob blockBlob = container.GetBlockBlobReference("title-new.txt");
+            CloudBlockBlob blockBlob = container.GetBlockBlobReference("titles-new.txt");
 
             using (var fileStream = System.IO.File.OpenWrite(filePath))
             {
