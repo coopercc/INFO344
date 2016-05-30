@@ -22,12 +22,58 @@
 
     $("#submitSearch").click(function () {
         var searchQuery = $("#query").val();
-
+        $("playerStats").empty();
         function onSuccess(data) {
-            console.log(data);
-            var nbaResults = JSON.stringify(data);
+            var nbaResults = data;
             if (nbaResults != "") {
-                console.log(nbaResults);
+                var well = $("<div><div>").addClass("well");
+                well.append($("<h3></h3>").text(nbaResults["name"]));
+
+                var table = $("<table></table>").addClass("table");
+                var headerRow = $("<tr></tr>");
+                headerRow.append($("<th></th>").text("Team"));
+                headerRow.append($("<th></th>").text("Games Played"));
+                headerRow.append($("<th></th>").text("Off Rebounds"));
+                headerRow.append($("<th></th>").text("Def Rebounds"));
+                headerRow.append($("<th></th>").text("Tot Rebounds"));
+
+
+                var playerRow = $("<tr></tr>");
+                playerRow.append($("<td></td>").text(nbaResults["team"]));
+                playerRow.append($("<td></td>").text(nbaResults["gp"]));
+                playerRow.append($("<td></td>").text(nbaResults["offReb"]));
+                playerRow.append($("<td></td>").text(nbaResults["defReb"]));
+                playerRow.append($("<td></td>").text(nbaResults["totReb"]));
+
+
+                table.append(headerRow);
+                table.append(playerRow);
+                
+                
+                well.append(table);
+
+                var table = $("<table></table>").addClass("table");
+                var headerRow = $("<tr></tr>");
+                headerRow.append($("<th></th>").text("3 Pointers"));
+                headerRow.append($("<th></th>").text("Assists"));
+                headerRow.append($("<th></th>").text("Turnovers"));
+                headerRow.append($("<th></th>").text("Steals"));
+                headerRow.append($("<th></th>").text("Blocks"));
+                headerRow.append($("<th></th>").text("PPG"));
+
+                var playerRow = $("<tr></tr>");
+                playerRow.append($("<td></td>").text(nbaResults["threept"]));
+                playerRow.append($("<td></td>").text(nbaResults["ast"]));
+                playerRow.append($("<td></td>").text(nbaResults["turnovers"]));
+                playerRow.append($("<td></td>").text(nbaResults["stl"]));
+                playerRow.append($("<td></td>").text(nbaResults["block"]));
+                playerRow.append($("<td></td>").text(nbaResults["ppg"]));
+
+                table.append(headerRow);
+                table.append(playerRow);
+
+                well.append(table);
+                $("#playerStats").append(well);
             }
         }
 
