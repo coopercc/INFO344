@@ -22,7 +22,9 @@
 
     $("#submitSearch").click(function () {
         var searchQuery = $("#query").val();
-        $("playerStats").empty();
+        $("#playerStats").html("");
+        $("#results").html("");
+
         function onSuccess(data) {
             var nbaResults = data;
             if (nbaResults != "") {
@@ -37,7 +39,6 @@
                 headerRow.append($("<th></th>").text("Def Rebounds"));
                 headerRow.append($("<th></th>").text("Tot Rebounds"));
 
-
                 var playerRow = $("<tr></tr>");
                 playerRow.append($("<td></td>").text(nbaResults["team"]));
                 playerRow.append($("<td></td>").text(nbaResults["gp"]));
@@ -45,11 +46,8 @@
                 playerRow.append($("<td></td>").text(nbaResults["defReb"]));
                 playerRow.append($("<td></td>").text(nbaResults["totReb"]));
 
-
                 table.append(headerRow);
                 table.append(playerRow);
-                
-                
                 well.append(table);
 
                 var table = $("<table></table>").addClass("table");
@@ -71,7 +69,6 @@
 
                 table.append(headerRow);
                 table.append(playerRow);
-
                 well.append(table);
                 $("#playerStats").append(well);
             }
@@ -85,28 +82,19 @@
             dataType: "jsonP",
             success: onSuccess
         });
-
-
-
         $.ajax({
             url: "Admin.asmx/searchUrl",
             data: JSON.stringify({ searchPhrase: searchQuery }),
             contentType: "application/json; charset=utf-8",
             type: "POST",
             success: function (data) {
-                $("#results").html("");
-
                 for (var i = 0; i < data.d.length; i++ ) {
                     var div = $("<div class='well'></div>");
                     var link = $("<a href=" + data.d[i] + "></a>")
                     link.html(data.d[i]);
                     div.html(link);
                     $("#results").append(div);
-                    console.log(data.d[i]);
                 }
-
-
-
 
             },
             error: function (x, y, z) {
