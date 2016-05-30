@@ -9,14 +9,33 @@
     <link rel="stylesheet" type="text/css" href="main.css">
 </head>
 <body>
-    <h1>Shitty Google:</h1>
+
+    <h1>Search:</h1>
     <form name="search">
         <input type="text" name="box" id="query" />
         <input type="button" value="Search" id="submitSearch" />
     </form>
 
+
     <p id="display"></p>
-    <div id="playerStats"></div>
-    <div id="results"></div>
+    <div class="row">
+        <div class="col-sm-9">
+            <div id="playerStats"></div>
+            <div id="results"></div>
+        </div>
+        <div class="col-sm-3">
+            <script type="text/javascript">
+                  ( function() {
+                    if (window.CHITIKA === undefined) { window.CHITIKA = { 'units' : [] }; };
+                    var unit = {"calltype":"async[2]","publisher":"f1yght","width":160,"height":600,"sid":"Chitika Default"};
+                    var placement_id = window.CHITIKA.units.length;
+                    window.CHITIKA.units.push(unit);
+                    document.write('<div id="chitikaAdBlock-' + placement_id + '"></div>');
+                }());
+            </script>
+            <script type="text/javascript" src="//cdn.chitika.net/getads.js" async></script>
+            <script type="text/javascript" src="//cdn.chitika.net/getads.js" async></script>
+        </div>
+    </div>
 </body>
 </html>
