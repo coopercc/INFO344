@@ -264,8 +264,7 @@ namespace WorkerRole1
                                     {
                                         HtmlClass newPage = new HtmlClass(word, url, title, date);
                                         TableOperation insertOperation = TableOperation.Insert(newPage);
-                                        crawled.Execute(insertOperation); //add to table
-                                        AlreadyCrawled.Add(url); //add to urls already crawled
+                                        crawled.Execute(insertOperation); //add to table                                       
                                     }
 
                                 }
@@ -337,7 +336,7 @@ namespace WorkerRole1
 
                             TableOperation replaceTotal = TableOperation.InsertOrReplace(updateTotal);
                             stats.Execute(replaceTotal);
-
+                            AlreadyCrawled.Add(url);
                         }
                     }
 
